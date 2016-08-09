@@ -26,11 +26,8 @@ function MakePage () {
 
     echo "Rendering $html"
     $APP \
-	"title=text:mkpage: An experimental template and markdown processor" \
         "nav=$nav" \
         "content=$content" \
-	    "sitebuilt=text:Updated $(date)" \
-        "copyright=copyright.md" \
         page.tmpl > $html
 }
 
