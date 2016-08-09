@@ -2,18 +2,21 @@
 # Simple Makefile
 #
 PROG = xlquery
-build:
+
+build: fmt
+	go build
+	go build -o bin/$(PROG) cmds/$(PROG)/$(PROG).go
+
+test: fmt
+	go test
+
+fmt: 
 	gofmt -w $(PROG).go
 	gofmt -w $(PROG)_test.go
 	gofmt -w cmds/$(PROG)/$(PROG).go
 	goimports -w $(PROG).go
 	goimports -w $(PROG)_test.go
 	goimports -w cmds/$(PROG)/$(PROG).go
-	go build
-	go build -o bin/$(PROG) cmds/$(PROG)/$(PROG).go
-
-test:
-	go test
 
 save:
 	./mk-website.bash

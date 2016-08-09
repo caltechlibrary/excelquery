@@ -18,7 +18,28 @@
 //
 package xlquery
 
+import (
+	"fmt"
+
+	// 3rd Party packages
+	"github.com/tealeg/xlsx"
+)
+
 const (
 	// Version of this package
 	Version = "v0.0.0"
 )
+
+func QueryEPrints(sheet *xlsx.Row, queryRow, queryCol, resultRow, resultCol int) error {
+	resultCell = sheet.Cell(resultRow, resultCol)
+	if strings.TrimSpace(resultCell.Value) != "" {
+		return fmt.Errorf("cannot overwrite data in %d, %d: %s", resultRow, resultCol, resultCell.Value)
+	}
+	queryCell = sheet.Cell(queryRow, queryCol)
+	//FIXME: make query to API
+	// Query API
+	// If zero results leave result row/col alone
+	// If one result populate column with target value
+	// If multiple results leave query result link
+	return nil
+}
