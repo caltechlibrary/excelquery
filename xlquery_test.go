@@ -67,13 +67,13 @@ func TestQueryEPrints(t *testing.T) {
 	log.Println("This is a test")
 
 	for i, sheet := range xldocTest.Sheets {
-		for j, row := range sheet.Rows {
-			for k, cell := range row.Cells {
-				log.Printf("sheet: %d, row: %d, col: %d -> %s\n", i, j, k, cell.Value)
-			}
-			err := QueryEPrints(row, 0, 2)
+		for j, _ := range sheet.Rows {
+			q := sheet.Cell(j, 0)
+			r := sheet.Cell(j, 2)
+			log.Printf("sheet: %d, row: %d, q: %s, r: %s\n", i, j, q.Value, r.Value)
+			err = QueryEPrints(sheet, j, 0, j, 2)
 			if err != nil {
-				t.Errorf("QueryEPrints(row, 0, 2) failed, %s", err)
+				t.Errorf("QueryEPrints(sheet, %d, 0, %d, 2) failed, %s", j, j, err)
 				t.FailNow()
 			}
 		}
