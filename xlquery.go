@@ -38,6 +38,7 @@ func QueryEPrints(sheet *xlsx.Row, queryRow, queryCol, resultRow, resultCol int)
 	queryCell = sheet.Cell(queryRow, queryCol)
 	//FIXME: make query to API
 	// Query API
+
 	// If zero results leave result row/col alone
 	// If one result populate column with target value
 	// If multiple results leave query result link
