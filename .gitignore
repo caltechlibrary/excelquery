@@ -30,4 +30,7 @@ _testmain.go
 *.swp
 bin/*
 dist/*
+etc/*
 *.zip
+*.conf
+testdata/*

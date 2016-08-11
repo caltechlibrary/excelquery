@@ -20,6 +20,8 @@ package xlquery
 
 import (
 	"fmt"
+	"math"
+	"net/url"
 	"strings"
 
 	// 3rd Party packages
@@ -28,21 +30,60 @@ import (
 
 const (
 	// Version of this package
-	Version = "v0.0.0"
+	Version = "v0.0.1"
 )
 
-func QueryEPrints(sheet *xlsx.Sheet, queryRow, queryCol, resultRow, resultCol int) error {
-	resultCell := sheet.Cell(resultRow, resultCol)
-	if strings.TrimSpace(resultCell.Value) != "" {
-		return fmt.Errorf("cannot overwrite data in %d, %d: %s", resultRow, resultCol, resultCell.Value)
+// ColumnToInt turns a column reference e.g. 'A', 'BF' into an interger value
+func ColumnToInt(colName string) int {
+	colName = strings.ToUpper(colName)
+	r := 0
+	cols := len(colName) - 1
+	for i, chr := range colName {
+		r += int(float64(chr-65) * math.Pow(26, float64(cols-i)))
 	}
-	queryCell := sheet.Cell(queryRow, queryCol)
-	//FIXME: make query to API
-	// Query API
-	fmt.Printf("Query: %s\n", queryCell.Value)
+	return r
+}
 
-	// If zero results leave result row/col alone
-	// If one result populate column with target value
-	// If multiple results leave query result link
+// GetCell given a Spreadsheet, row and col, return the query string or error
+func GetCell(sheet *xlsx.Sheet, row int, col int) string {
+	cell := sheet.Cell(row, col)
+	if cell != nil {
+		return cell.Value
+	}
+	return ""
+}
+
+// UpdateCell given a Spreadsheeet, row and col, save the value respecting the overWrite flag or return an error
+func UpdateCell(sheet *xlsx.Sheet, row int, col int, value string, overwrite bool) error {
+	//FIXME: add support for case of missing column or row.
+	cell := sheet.Cell(row, col)
+	if overwrite == false && cell.Value != "" {
+		return fmt.Errorf("Cell(%d, %d) already has a value %s", row, col, cell.Value)
+	}
+	cell.Value = value
 	return nil
+}
+
+// UpdateQuery adds any mapped values to the URL object passed in.
+//
+// URL attribute for EPrints advanced search (output is Atom):
+//  Scheme: http
+//  Host: eprint-repository.example.org
+//  Path: /cgi/search/advanced
+//  Query parameters:
+// 		title: Molecules in solutoin
+// 		output: Atom
+//
+// Example usage:
+// api, _ := url.Parse("http://eprint-repository.example.org/cgi/search/advanced")
+// xlquery.UpdateQuery(api, map[string]string{"title": title, "output":"Atom"})
+// data, err := http.Get(api.String())
+// ...
+func UpdateQuery(api *url.URL, queryTerms map[string]string) *url.URL {
+	q := api.Query()
+	for key, val := range queryTerms {
+		q.Set(key, val)
+	}
+	api.RawQuery = q.Encode()
+	return api
 }

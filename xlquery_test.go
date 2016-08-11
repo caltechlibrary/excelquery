@@ -27,7 +27,23 @@ import (
 	"github.com/tealeg/xlsx"
 )
 
-func TestQueryEPrints(t *testing.T) {
+func TestColumnToInt(t *testing.T) {
+	testVals := map[string]int{
+		"A":  0,
+		"AB": 27,
+		//"CDE",
+		//"JQZ",
+	}
+
+	for s, i := range testVals {
+		r := ColumnToInt(s)
+		if r != i {
+			t.Errorf("ColumnToInt(%q) != %d, returned %d", s, i, r)
+		}
+	}
+}
+
+func TestSheetHandling(t *testing.T) {
 	xldoc := xlsx.NewFile()
 	sheet, err := xldoc.AddSheet("Sheet1")
 	if err != nil {
@@ -71,10 +87,28 @@ func TestQueryEPrints(t *testing.T) {
 			q := sheet.Cell(j, 0)
 			r := sheet.Cell(j, 2)
 			log.Printf("sheet: %d, row: %d, q: %s, r: %s\n", i, j, q.Value, r.Value)
-			err = QueryEPrints(sheet, j, 0, j, 2)
+			qTest := GetCell(sheet, j, 0)
+			if q.Value != qTest.Value {
+				t.Errorf("GetCell(sheet, %d, 0) expected %s, got %s", j, q.Value, qTest.Value)
+			}
+			if r.Value != "" {
+				err := UpdateCell(sheet, j, 2, "This is a test", false)
+				if err != nil {
+					t.Errorf("Expected an err on update to cell %d,2", j)
+				}
+			} else {
+				err := UpdateCell(sheet, j, 2, "This is a test", false)
+				if err == nil {
+					t.Errorf("Expected err to be nil on update to cell %d,2, %s", j, err)
+				}
+			}
+			err := UpdateCell(sheet, j, 2, "This is a test 2", true)
 			if err != nil {
-				t.Errorf("QueryEPrints(sheet, %d, 0, %d, 2) failed, %s", j, j, err)
-				t.FailNow()
+				t.Errorf("Update error, %s", err)
+			}
+			r2 := sheet.Cell(j, 2)
+			if r2.Value != "This is a test 2" {
+				t.Errorf("Expected %q, got %s", "This is a test 2", r2.Value)
 			}
 		}
 	}
