@@ -32,8 +32,8 @@ const (
 	Version = "v0.0.1"
 )
 
-// ColumnToInt turns a column reference e.g. 'A', 'BF' into an interger value
-func ColumnToInt(colName string) (int, error) {
+// ColumnNameToIndex turns a column reference e.g. 'A', 'BF' into a zero-based array position
+func ColumnNameToIndex(colName string) (int, error) {
 	m := map[string]int{
 		"A": 1,
 		"B": 2,

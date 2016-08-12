@@ -22,6 +22,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path"
 
 	// Caltech Library packages
 	"github.com/caltechlibrary/xlquery"
@@ -83,7 +84,7 @@ func init() {
 }
 
 func main() {
-	appname := os.Args[0]
+	appname := path.Base(os.Args[0])
 	flag.Parse()
 	if showHelp == true {
 		usage(os.Stdout, appname)
@@ -98,5 +99,12 @@ func main() {
 		os.Exit(0)
 	}
 
-	fmt.Printf("Not implemented")
+	args := flag.Args()
+	if len(args) != 3 {
+		fmt.Fprintf(os.Stderr, "Expected %s XLXS_FILENAME QUERY_COLUMN RESULT_COLUMN\n", appname)
+		os.Exit(1)
+	}
+	fname, queryColumn, resultsColumn := args[0], args[1], args[2]
+
+	fmt.Printf("Test fname: %s, queryColumn: %s, resultColumn: %s\n", fname, queryColumn, resultsColumn)
 }

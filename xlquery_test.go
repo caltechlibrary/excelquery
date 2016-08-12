@@ -26,7 +26,7 @@ import (
 	"github.com/tealeg/xlsx"
 )
 
-func TestColumnToInt(t *testing.T) {
+func TestColumnNameToIndex(t *testing.T) {
 	testVals := map[string]int{
 		"A":   0,
 		"R":   17,
@@ -83,12 +83,12 @@ func TestColumnToInt(t *testing.T) {
 	}
 
 	for s, i := range testVals {
-		r, err := ColumnToInt(s)
+		r, err := ColumnNameToIndex(s)
 		if err != nil {
 			t.Errorf("Couldn't convert %s to int, %s", s, err)
 		}
 		if r != i {
-			t.Errorf("ColumnToInt(%q) != %d, returned %d", s, i, r)
+			t.Errorf("ColumnNameToIndex(%q) != %d, returned %d", s, i, r)
 		}
 	}
 }
