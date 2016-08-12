@@ -20,7 +20,6 @@ package xlquery
 
 import (
 	"fmt"
-	"math"
 	"net/url"
 	"strings"
 
@@ -34,14 +33,49 @@ const (
 )
 
 // ColumnToInt turns a column reference e.g. 'A', 'BF' into an interger value
-func ColumnToInt(colName string) int {
-	colName = strings.ToUpper(colName)
-	r := 0
-	cols := len(colName) - 1
-	for i, chr := range colName {
-		r += int(float64(chr-65) * math.Pow(26, float64(cols-i)))
+func ColumnToInt(colName string) (int, error) {
+	m := map[string]int{
+		"A": 1,
+		"B": 2,
+		"C": 3,
+		"D": 4,
+		"E": 5,
+		"F": 6,
+		"G": 7,
+		"H": 8,
+		"I": 9,
+		"J": 10,
+		"K": 11,
+		"L": 12,
+		"M": 13,
+		"N": 14,
+		"O": 15,
+		"P": 16,
+		"Q": 17,
+		"R": 18,
+		"S": 19,
+		"T": 20,
+		"U": 21,
+		"V": 22,
+		"W": 23,
+		"X": 24,
+		"Y": 25,
+		"Z": 26,
 	}
-	return r
+	if strings.TrimSpace(colName) == "" {
+		return -1, fmt.Errorf("No column letter provided")
+	}
+	sum := 0
+	letters := strings.Split(strings.ToUpper(colName), "")
+	for i, l := range letters {
+		if v, ok := m[l]; ok == true {
+			sum = sum * 26
+			sum += v
+		} else {
+			return -1, fmt.Errorf("Can't find value for %q in %q", letters[i], colName)
+		}
+	}
+	return sum - 1, nil
 }
 
 // GetCell given a Spreadsheet, row and col, return the query string or error

@@ -19,7 +19,6 @@
 package xlquery
 
 import (
-	"log"
 	"path"
 	"testing"
 
@@ -29,14 +28,65 @@ import (
 
 func TestColumnToInt(t *testing.T) {
 	testVals := map[string]int{
-		"A":  0,
-		"AB": 27,
-		//"CDE",
-		//"JQZ",
+		"A":   0,
+		"R":   17,
+		"Z":   25,
+		"AA":  26,
+		"AB":  27,
+		"AM":  38,
+		"AS":  44,
+		"AX":  49,
+		"AZ":  51,
+		"BA":  52,
+		"BE":  56,
+		"BY":  76,
+		"CA":  78,
+		"CL":  89,
+		"DO":  118,
+		"EG":  136,
+		"EZ":  155,
+		"FX":  179,
+		"GZ":  207,
+		"IE":  238,
+		"IT":  253,
+		"LS":  330,
+		"MA":  338,
+		"MT":  357,
+		"OK":  400,
+		"PQ":  432,
+		"RD":  471,
+		"TJ":  529,
+		"ZZ":  701,
+		"AAA": 702,
+		"AAB": 703,
+		"AAZ": 727,
+		"ABA": 728,
+		"ADQ": 796,
+		"ARC": 1146,
+		"ARG": 1150,
+		"ARM": 1156,
+		"ASK": 1180,
+		"ASM": 1182,
+		"ATM": 1208,
+		"AUX": 1245,
+		"AVE": 1252,
+		"AVI": 1256,
+		"AWE": 1278,
+		"AWK": 1284,
+		"AZZ": 1377,
+		"BAA": 1378,
+		"BAD": 1381,
+		"BAM": 1390,
+		"BAT": 1397,
+		"BBC": 1406,
+		"BED": 1485,
 	}
 
 	for s, i := range testVals {
-		r := ColumnToInt(s)
+		r, err := ColumnToInt(s)
+		if err != nil {
+			t.Errorf("Couldn't convert %s to int, %s", s, err)
+		}
 		if r != i {
 			t.Errorf("ColumnToInt(%q) != %d, returned %d", s, i, r)
 		}
@@ -80,31 +130,24 @@ func TestSheetHandling(t *testing.T) {
 		t.Errorf("Can't open %s, %s", fname, err)
 		t.FailNow()
 	}
-	log.Println("This is a test")
 
-	for i, sheet := range xldocTest.Sheets {
+	for _, sheet := range xldocTest.Sheets {
 		for j, _ := range sheet.Rows {
 			q := sheet.Cell(j, 0)
 			r := sheet.Cell(j, 2)
-			log.Printf("sheet: %d, row: %d, q: %s, r: %s\n", i, j, q.Value, r.Value)
 			qTest := GetCell(sheet, j, 0)
-			if q.Value != qTest.Value {
-				t.Errorf("GetCell(sheet, %d, 0) expected %s, got %s", j, q.Value, qTest.Value)
+			if q.Value != qTest {
+				t.Errorf("GetCell(sheet, %d, 0) expected %s, got %s", j, q.Value, qTest)
 			}
 			if r.Value != "" {
 				err := UpdateCell(sheet, j, 2, "This is a test", false)
 				if err != nil {
 					t.Errorf("Expected an err on update to cell %d,2", j)
 				}
-			} else {
-				err := UpdateCell(sheet, j, 2, "This is a test", false)
-				if err == nil {
-					t.Errorf("Expected err to be nil on update to cell %d,2, %s", j, err)
-				}
 			}
 			err := UpdateCell(sheet, j, 2, "This is a test 2", true)
 			if err != nil {
-				t.Errorf("Update error, %s", err)
+				t.Errorf("Expected err to be nil on update to cell %d,2, %s", j, err)
 			}
 			r2 := sheet.Cell(j, 2)
 			if r2.Value != "This is a test 2" {
