@@ -20,6 +20,8 @@ package xlquery
 
 import (
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"net/url"
 	"strings"
 
@@ -98,7 +100,7 @@ func UpdateCell(sheet *xlsx.Sheet, row int, col int, value string, overwrite boo
 	return nil
 }
 
-// UpdateQuery adds any mapped values to the URL object passed in.
+// UpdateQuery adds/overwrites any mapped values to the URL object passed in.
 //
 // URL attribute for EPrints advanced search (output is Atom):
 //  Scheme: http
@@ -121,3 +123,32 @@ func UpdateQuery(api *url.URL, queryTerms map[string]string) *url.URL {
 	api.RawQuery = q.Encode()
 	return api
 }
+
+// RunQuery executes an HTTP request to the service returning a Query structure
+// and error value.
+func RunQuery(api *url.URL, headers map[string]string) ([]byte, error) {
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", api.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	for ky, val := range headers {
+		req.Header.Add(ky, val)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	//defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	return body, nil
+}
+
+// given an RSS2 document return all the entries matching so we can apply some sort of data path
+// e.g. .version, .channel.title, .channel.link, .item[].link, .item[].guid, .item[].title, .item[].description

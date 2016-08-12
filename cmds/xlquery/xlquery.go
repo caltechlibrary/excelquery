@@ -55,9 +55,14 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 func usage(fp *os.File, appName string) {
 	fmt.Fprintf(fp, `
- USAGE: %s [OPTION] EXCEL_WORKBOOK_NAME QUERY_COLUMN RESULTS_COLUMN
+ USAGE: %s [OPTION] WORKBOOK_NAME SHEET_NAME QUERY_COLUMN RESULT_COLUMN DATA_PATH
 
- Populate an Excel spreadsheet column by using a column's value as a query string.
+ Populate an spreadsheet in ".xlsx" format by using a query column's value as a query string
+ updating the result column's value (without overwriting existing data).
+
+ + Sheet name should correspond to the sheet you want to run through (e.g. "Sheet 1")
+ + Column names are in Excel's letter format (e.g. "A", "FX", "BBC").
+ + data path is the part of the result you want to use (e.g. url matching the title queried)
 
  OPTIONS
 
@@ -100,11 +105,11 @@ func main() {
 	}
 
 	args := flag.Args()
-	if len(args) != 3 {
-		fmt.Fprintf(os.Stderr, "Expected %s XLXS_FILENAME QUERY_COLUMN RESULT_COLUMN\n", appname)
+	if len(args) < 4 {
+		fmt.Fprintf(os.Stderr, "USAGE: %s XLXS_FILENAME QUERY_COLUMN RESULT_COLUMN DATA_PATH\n", appname)
 		os.Exit(1)
 	}
-	fname, queryColumn, resultsColumn := args[0], args[1], args[2]
+	fname, queryColumn, resultsColumn, dataPath := args[0], args[1], args[2], args[3]
 
-	fmt.Printf("Test fname: %s, queryColumn: %s, resultColumn: %s\n", fname, queryColumn, resultsColumn)
+	fmt.Printf("Test fname: %s, queryColumn: %s, resultColumn: %s, dataPath\n", fname, queryColumn, resultsColumn, dataPath)
 }

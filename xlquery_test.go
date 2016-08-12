@@ -19,6 +19,8 @@
 package xlquery
 
 import (
+	"log"
+	"net/url"
 	"path"
 	"testing"
 
@@ -155,4 +157,27 @@ func TestSheetHandling(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestQuerySupport(t *testing.T) {
+	eprintsAPI, err := url.Parse("http://authors.library.caltech.edu/cgi/search/advanced/")
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+
+	eprintsAPI = UpdateQuery(eprintsAPI, map[string]string{
+		"title":  "Molecules in solution",
+		"output": "RSS2",
+	})
+	if eprintsAPI == nil {
+		t.Errorf("Something went wrong updating eprintsAPI query")
+		t.FailNow()
+	}
+	buf, err := RunQuery(eprintsAPI, map[string]string{})
+	if err != nil {
+		t.Errorf("Failed to run %s, %s", eprintsAPI.String(), err)
+		t.FailNow()
+	}
+	log.Printf("DEBUG buf: %s\n", buf)
 }
