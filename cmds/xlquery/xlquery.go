@@ -36,6 +36,8 @@ var (
 	showHelp    bool
 	showVersion bool
 	showLicense bool
+
+	overwriteResult bool
 )
 
 const (
@@ -90,6 +92,9 @@ func init() {
 	flag.BoolVar(&showVersion, "version", false, "show version information")
 	flag.BoolVar(&showLicense, "l", false, "show license information")
 	flag.BoolVar(&showLicense, "license", false, "show license information")
+
+	flag.BoolVar(&overwriteResult, "o", false, "overwrite the results column")
+	flag.BoolVar(&overwriteResult, "overwrite", false, "overwrite the results column")
 }
 
 func main() {
@@ -156,21 +161,25 @@ func main() {
 					feed, err := rss2.Parse(buf)
 					if err != nil {
 						fmt.Fprintf(os.Stderr, "Can't parse response %s, %s", eprintsAPI.String(), err)
-					}
-					links, err := feed.Filter(dataPath)
-					if err != nil {
-						fmt.Fprintf(os.Stderr, "filter on link error, %s", err)
-					} else if links != nil {
-						fmt.Printf("\tfound %d links\n", len(links[dataPath].([]string)))
-						s := strings.Join(links[dataPath].([]string), "\r")
-						err = xlquery.UpdateCell(sheet, i, rIndex, s, false)
+					} else {
+						links, err := feed.Filter(dataPath)
 						if err != nil {
-							fmt.Fprintf(os.Stderr, "Failed to update cell results for %s, %s", searchString, err)
-						} else {
-							saveWorkbook = true
+							fmt.Fprintf(os.Stderr, "filter on link error, %s", err)
+						} else if links != nil {
+							fmt.Printf("\tfound %d links\n", len(links[dataPath].([]string)))
+							s := strings.Join(links[dataPath].([]string), "\r")
+							err = xlquery.UpdateCell(sheet, i, rIndex, s, overwriteResult)
+							if err != nil {
+								fmt.Fprintf(os.Stderr, "Failed to update cell results for %s, %s", searchString, err)
+							} else {
+								saveWorkbook = true
+							}
 						}
+						links = nil
 					}
+					feed = nil
 				}
+				buf = nil
 			}
 		}
 		if saveWorkbook == true {
