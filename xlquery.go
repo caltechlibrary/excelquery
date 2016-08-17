@@ -100,7 +100,7 @@ func UpdateCell(sheet *xlsx.Sheet, row int, col int, value string, overwrite boo
 	return nil
 }
 
-// UpdateQuery adds/overwrites any mapped values to the URL object passed in.
+// UpdateParameters adds/overwrites any mapped values to the URL object passed in.
 //
 // URL attribute for EPrints advanced search (output is Atom):
 //  Scheme: http
@@ -115,7 +115,7 @@ func UpdateCell(sheet *xlsx.Sheet, row int, col int, value string, overwrite boo
 // xlquery.UpdateQuery(api, map[string]string{"title": title, "output":"Atom"})
 // data, err := http.Get(api.String())
 // ...
-func UpdateQuery(api *url.URL, queryTerms map[string]string) *url.URL {
+func UpdateParameters(api *url.URL, queryTerms map[string]string) *url.URL {
 	q := api.Query()
 	for key, val := range queryTerms {
 		q.Set(key, val)
@@ -124,9 +124,9 @@ func UpdateQuery(api *url.URL, queryTerms map[string]string) *url.URL {
 	return api
 }
 
-// RunQuery executes an HTTP request to the service returning a Query structure
+// Request executes an HTTP request to the service returning a Query structure
 // and error value.
-func RunQuery(api *url.URL, headers map[string]string) ([]byte, error) {
+func Request(api *url.URL, headers map[string]string) ([]byte, error) {
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", api.String(), nil)
 	if err != nil {

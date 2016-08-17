@@ -77,7 +77,6 @@ func getRange(listLength int, exp string) *rangeExpression {
 	rexp.first = 0
 	rexp.last = listLength - 1
 
-	fmt.Printf("DEBUG exp: %q\n", exp)
 	if strings.Contains(exp, "-") == true {
 		nums := strings.SplitN(exp, "-", 2)
 		i, err := strconv.Atoi(nums[0])
@@ -95,7 +94,6 @@ func getRange(listLength int, exp string) *rangeExpression {
 			rexp.last = i
 		}
 	}
-	fmt.Printf("DEBUG rexp: %+v\n", rexp)
 	return rexp
 }
 
@@ -171,13 +169,12 @@ func (r *RSS2) items(dataPath string) (map[string]interface{}, error) {
 		}
 		results["comments"] = vals
 	}
-	fmt.Printf("DEBUG items: %+v\n", results)
 	return results, nil
 }
 
-// Query given an RSS2 document return all the entries matching so we can apply some sort of data path
+// Filter given an RSS2 document return all the entries matching so we can apply some sort of data path
 // e.g. .version, .channel.title, .channel.link, .item[].link, .item[].guid, .item[].title, .item[].description
-func (r *RSS2) Query(dataPath string) (map[string]interface{}, error) {
+func (r *RSS2) Filter(dataPath string) (map[string]interface{}, error) {
 	var (
 		err  error
 		data map[string]interface{}
@@ -188,10 +185,16 @@ func (r *RSS2) Query(dataPath string) (map[string]interface{}, error) {
 		result["version"] = r.Version
 	case strings.HasPrefix(dataPath, ".channel"):
 		data, err = r.channel(dataPath)
-		result["channel"] = data
+		// Merge data into results keyed' by path
+		for _, val := range data {
+			result[dataPath] = val
+		}
 	case strings.HasPrefix(dataPath, ".item[]"):
 		data, err = r.items(dataPath)
-		result["items"] = data
+		// Merge data into results keyed' by path
+		for _, val := range data {
+			result[dataPath] = val
+		}
 	default:
 		return nil, fmt.Errorf("path %q not found", dataPath)
 	}

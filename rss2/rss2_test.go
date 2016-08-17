@@ -1,7 +1,8 @@
 package rss2
 
 import (
-	"fmt"
+	"net/url"
+	"strings"
 	"testing"
 )
 
@@ -76,14 +77,24 @@ func TestRSS2(t *testing.T) {
 		t.Error(err)
 		t.FailNow()
 	}
-	titles, err := r.Query(".item[].title")
+	results, err := r.Filter(".item[].title")
 	if err != nil {
 		t.Error(err)
 		t.FailNow()
 	}
-	if len(titles) == 0 {
-		t.Errorf("Expected titles")
+	if len(results[".item[].title"].([]string)) != len(r.ItemList) {
+		t.Errorf("Expected 6 .item[].title, got %s", strings.Join(results[".item[].title"].([]string), "\t"))
 		t.FailNow()
 	}
-	fmt.Printf("DEBUG titles: %s\n", titles)
+	results, err = r.Filter(".item[].link")
+	if err != nil {
+		t.Errorf("Expected 6 .item[].link, got %+v", strings.Join(results[".item[].title"].([]string), "\t"))
+		t.FailNow()
+	}
+	for _, link := range results[".item[].link"].([]string) {
+		_, err := url.Parse(link)
+		if err != nil {
+			t.Errorf("expected to parse link %q into url, %s", link, err)
+		}
+	}
 }

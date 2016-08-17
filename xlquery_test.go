@@ -19,12 +19,12 @@
 package xlquery
 
 import (
-	"log"
 	"net/url"
 	"path"
 	"testing"
 
 	// 3rd Party packages
+	"github.com/caltechlibrary/xlquery/rss2"
 	"github.com/tealeg/xlsx"
 )
 
@@ -166,7 +166,7 @@ func TestQuerySupport(t *testing.T) {
 		t.FailNow()
 	}
 
-	eprintsAPI = UpdateQuery(eprintsAPI, map[string]string{
+	eprintsAPI = UpdateParameters(eprintsAPI, map[string]string{
 		"title":  "Molecules in solution",
 		"output": "RSS2",
 	})
@@ -174,10 +174,19 @@ func TestQuerySupport(t *testing.T) {
 		t.Errorf("Something went wrong updating eprintsAPI query")
 		t.FailNow()
 	}
-	buf, err := RunQuery(eprintsAPI, map[string]string{})
+	buf, err := Request(eprintsAPI, map[string]string{})
 	if err != nil {
 		t.Errorf("Failed to run %s, %s", eprintsAPI.String(), err)
 		t.FailNow()
 	}
-	log.Printf("DEBUG buf: %s\n", buf)
+	r, err := rss2.Parse(buf)
+	if err != nil {
+		t.Errorf("Failed to parse response, buf[0:24] %q, err %q", buf[0:24], err)
+		t.FailNow()
+	}
+	_, err = r.Filter(".item[].title")
+	if err != nil {
+		t.Errorf("Failed to filter for titles, %s", err)
+		t.FailNow()
+	}
 }

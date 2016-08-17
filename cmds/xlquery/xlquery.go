@@ -21,11 +21,15 @@ package main
 import (
 	"flag"
 	"fmt"
+	"net/url"
 	"os"
 	"path"
+	"strings"
 
 	// Caltech Library packages
 	"github.com/caltechlibrary/xlquery"
+	"github.com/caltechlibrary/xlquery/rss2"
+	"github.com/tealeg/xlsx"
 )
 
 var (
@@ -105,11 +109,73 @@ func main() {
 	}
 
 	args := flag.Args()
-	if len(args) < 4 {
-		fmt.Fprintf(os.Stderr, "USAGE: %s XLXS_FILENAME QUERY_COLUMN RESULT_COLUMN DATA_PATH\n", appname)
+	if len(args) < 5 {
+		fmt.Fprintf(os.Stderr, "USAGE: %s XLXS_FILENAME SHEET_NAME QUERY_COLUMN RESULT_COLUMN DATA_PATH\n", appname)
 		os.Exit(1)
 	}
-	fname, queryColumn, resultsColumn, dataPath := args[0], args[1], args[2], args[3]
+	fname, sname, queryColumn, resultsColumn, dataPath := args[0], args[1], args[2], args[3], args[4]
 
-	fmt.Printf("Test fname: %s, queryColumn: %s, resultColumn: %s, dataPath\n", fname, queryColumn, resultsColumn, dataPath)
+	fmt.Printf("Test fname: %s, sheet: %s, queryColumn: %s, resultColumn: %s, dataPath %s\n", fname, sname, queryColumn, resultsColumn, dataPath)
+	workbook, err := xlsx.OpenFile(fname)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Can't open %s, %s", fname, err)
+		os.Exit(1)
+	}
+	if sheet, ok := workbook.Sheet[sname]; ok == true {
+		qIndex, err := xlquery.ColumnNameToIndex(queryColumn)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Can't find column %s, in %s.%s, %s", queryColumn, fname, sname, err)
+			os.Exit(1)
+		}
+		rIndex, err := xlquery.ColumnNameToIndex(resultsColumn)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Can't find column %s, in %s.%s, %s", queryColumn, fname, sname, err)
+			os.Exit(1)
+		}
+		// FIXME: This should not be hardcoded, setup as a environment var? a commmand line option?
+		eprintsAPI, err := url.Parse("http://authors.library.caltech.edu/cgi/search/advanced/")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Can't parse CaltechAUTHORS URL %s", err)
+			os.Exit(1)
+		}
+		saveWorkbook := false
+		for i, _ := range sheet.Rows {
+			// Skip the first row os the spreadsheet, it's headings
+			if i > 0 {
+				// Update the search paraters
+				searchString := xlquery.GetCell(sheet, i, qIndex)
+				eprintsAPI = xlquery.UpdateParameters(eprintsAPI, map[string]string{
+					"title":  searchString,
+					"output": "RSS2",
+				})
+				fmt.Fprintf(os.Stdout, "%s\n", eprintsAPI.String())
+				buf, err := xlquery.Request(eprintsAPI, map[string]string{})
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "%s request failed, %s", eprintsAPI.String(), err)
+				} else {
+					feed, err := rss2.Parse(buf)
+					if err != nil {
+						fmt.Fprintf(os.Stderr, "Can't parse response %s, %s", eprintsAPI.String(), err)
+					}
+					links, err := feed.Filter(dataPath)
+					if err != nil {
+						fmt.Fprintf(os.Stderr, "filter on link error, %s", err)
+					} else if links != nil {
+						fmt.Printf("\tfound %d links\n", len(links[dataPath].([]string)))
+						s := strings.Join(links[dataPath].([]string), "\r")
+						err = xlquery.UpdateCell(sheet, i, rIndex, s, false)
+						if err != nil {
+							fmt.Fprintf(os.Stderr, "Failed to update cell results for %s, %s", searchString, err)
+						} else {
+							saveWorkbook = true
+						}
+					}
+				}
+			}
+		}
+		if saveWorkbook == true {
+			fmt.Printf("Writing results to %s\n", fname)
+			workbook.Save(fname)
+		}
+	}
 }
