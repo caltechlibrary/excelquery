@@ -16,5 +16,15 @@ Outputs
 
 + revised Workbook filename with the results column populated where data was found
 
+## Demo
+
+```shell
+    make
+    ./bin/xlquery -overwrite ./testdata/demo2.xlsx Sheet1 A C ".item[].link"
+```
+
+This opens demo2.xlsx and populates fresh results in column C based on the data path of ".item[].link" from the RSS2 response
+in the search request.
+
 
 

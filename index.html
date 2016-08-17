@@ -43,6 +43,15 @@ putting the results in a related column of the spreadsheet.</p>
 <li>revised Workbook filename with the results column populated where data was found</li>
 </ul>
 
+<h2>Demo</h2>
+
+<pre><code class="language-shell">    make
+    ./bin/xlquery -overwrite ./testdata/demo2.xlsx Sheet1 A C &quot;.item[].link&quot;
+</code></pre>
+
+<p>This opens demo2.xlsx and populates fresh results in column C based on the data path of &ldquo;.item[].link&rdquo; from the RSS2 response
+in the search request.</p>
+
 </section>
 
 <footer>
