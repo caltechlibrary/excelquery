@@ -144,9 +144,15 @@ func main() {
 			os.Exit(1)
 		}
 		saveWorkbook := false
-		for i, _ := range sheet.Rows {
-			// Skip the first row os the spreadsheet, it's headings
+		for i, row := range sheet.Rows {
+			// Assume first row of the spreadsheet is headings
 			if i > 0 {
+				// If row is too short for append necessary cells
+				if len(row.Cells) <= rIndex {
+					for len(row.Cells) <= rIndex {
+						row.AddCell()
+					}
+				}
 				// Update the search paraters
 				searchString := xlquery.GetCell(sheet, i, qIndex)
 				eprintsAPI = xlquery.UpdateParameters(eprintsAPI, map[string]string{

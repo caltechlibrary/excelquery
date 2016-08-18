@@ -91,12 +91,15 @@ func GetCell(sheet *xlsx.Sheet, row int, col int) string {
 
 // UpdateCell given a Spreadsheeet, row and col, save the value respecting the overWrite flag or return an error
 func UpdateCell(sheet *xlsx.Sheet, row int, col int, value string, overwrite bool) error {
-	//FIXME: add support for case of missing column or row.
 	cell := sheet.Cell(row, col)
 	if overwrite == false && cell.Value != "" {
 		return fmt.Errorf("Cell(%d, %d) already has a value %s", row, col, cell.Value)
 	}
 	cell.Value = value
+	// Update the style to use TextWrap = true
+	style := cell.GetStyle()
+	style.Alignment.WrapText = true
+	cell.SetStyle(style)
 	return nil
 }
 
