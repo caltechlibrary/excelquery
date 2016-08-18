@@ -6,14 +6,14 @@ function MakeWebApp() {
     TMPL=$3
     HTML=$4
     CWD=$(pwd)
-    for P in $WEBAPP; do
-        cd $P
-        gopherjs build
-        mkpage "nav=$NAV" $TMPL > $HTML 
-        cd "$CWD"
-    done
+    cd $WEBAPP
+    echo "Generating $HTML"
+    mkpage "nav=$NAV" $TMPL > $HTML 
+    echo "Generating $WEBAPP.js and $WEBAPP.js.map"
+    gopherjs build
+    cd "$CWD"
 }
 
 # xlquery webapp
-MakeWebApp webapp nav.md page.tmpl index.html
+MakeWebApp webapp nav.md webapp.tmpl index.html
 

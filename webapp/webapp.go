@@ -1,5 +1,5 @@
 //
-// webapp/webapp.go is a wrapper for xlquery.go targetting GopherJS and embedding xlquery functionality as a webapp in a web browser.
+// xlquery/webapp/webapp.go is a wrapper for xlquery.go targetting GopherJS and embedding xlquery functionality as a webapp in a web browser.
 //
 // @author R. S. Doiel, <rsdoiel@caltech.edu>
 //
@@ -16,7 +16,7 @@
 //
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-package webapp
+package main
 
 import (
 	"bytes"
@@ -24,12 +24,13 @@ import (
 	"net/url"
 	"strings"
 
-	// 3rd Party Library
-	"github.com/tealeg/xlsx"
-
 	// Caltech Library packages
 	"github.com/caltechlibrary/xlquery"
 	"github.com/caltechlibrary/xlquery/rss2"
+
+	// 3rd Party Library
+	"github.com/gopherjs/gopherjs/js"
+	"github.com/tealeg/xlsx"
 )
 
 // A structure to hold the Object in JS for accessing Go code
@@ -142,4 +143,21 @@ func (xlq *XLQuery) Run(data, queryColumn, resultColumn string) *XLQResponse {
 		}
 	}
 	return xlqResponse
+}
+
+func NewXLQuery() *js.Object {
+	return js.MakeWrapper(&XLQuery{})
+}
+
+func NewXLQResponse() *js.Object {
+	return js.MakeWrapper(&XLQResponse{})
+}
+
+func main() {
+	js.Global.Set("xlquery", map[string]interface{}{
+		"New": NewXLQuery,
+	})
+	js.Global.Set("xlresponse", map[string]interface{}{
+		"New": NewXLQResponse,
+	})
 }
