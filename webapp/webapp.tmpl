@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Caltech Library's Digital Library Development Sandbox</title>
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" href="../css/site.css">
+</head>
+<body>
+<header>
+<a href="http://library.caltech.edu"><img src="../assets/liblogo.gif" alt="Caltech Library logo"></a>
+</header>
+<nav>
+{{ .nav }}
+</nav>
+
+<section>
+<!-- BEGIN: WebApp stuff here -->
+<form>
+<div><label>EPrints Search URL</label> <input id="eprintsSearchURL" type="url" name="eprintsSearchURL" value="http://authors.libraray.caltech.edu/cgi/search/advanced/" size="80" ></div>
+<div><label>Data Path</label> <input id="dataPath" name="dataPath" type="text" value=".item[].link" size="80" ></div>
+<div><label>Check to Overwrite Results Column</label> <input id="overwriteResult" type="checkbox" name="overwrite" unchecked> </div>
+<div><label>Sheet Name</label> <input id="sheetName" name="sheetName" type="text" value="Sheet1" size="80" ></div>
+<div><label>Query column</label> <input id="queryColumn" name="queryColumn" type="text" value="" placeholder="A"></div>
+<div><label>Result column</label> <input id="resultColumn" name="resultColumn" type="text" value="" placeholder="B"></div>
+<div><label>Upload .xlsx file</label>  <input id="workbook" type="file" ></div>
+</form>
+<!-- END: WebApp stuff here -->
+</section>
+
+<script src="webapp.js"></script>
+<script>
+(function (doc, win) {
+    "use strict";
+    var eprintsSearchURL = document.getElementById("eprintsSearchURL"),
+        dataPath = document.getElementById("dataPath"),
+        overwriteResult = document.getElementById("overwriteResult"),
+        sheetName = document.getElementById("sheetName"),
+        workbook = document.getElementById("workbook"),
+        queryColumn = document.getElementById("queryColumn"),
+        resultColumn = document.getElementById("resultColumn");
+
+  workbook.addEventListener("change", function (evt)  {
+      var fp = workbook.files[0],
+          xlq = xlquery.New(),
+          xlr = xlresponse.New(),
+          reader = new FileReader(),
+          data;
+
+      xlq.EPrintsSearchURL = eprintsSearchURL.value;
+      xlq.DataPath = dataPath.value;
+      xlq.SheetName = sheetName.value;
+      xlq.Overwrite = overwriteResult.value;
+      
+      reader.onload = function(evt) { 
+          data = evt.target.result; 
+      };
+
+      console.log("DEBUG queryColumn.value", queryColumn.value);
+      console.log("DEBUG resultColumn.value", resultColumn.value);
+      xlr = xlq.Run(data, queryColumn.value, resultColumn.value);
+      if (xlr.Errors.length > 0) {
+          console.log("DEBUG xlr.Errors", xlr.Errors);
+      }
+      console.log("DEBUG xlr.Data", xlr.Data);
+  }, false)
+
+}(document, window))
+</script>
+
+<footer>
+<span><h1><A href="http://caltech.edu">Caltech</a></h1></span>
+<span>&copy; 2015 - 2016 <a href="http://library.caltech.edu/CLS_Copyright.htm">Caltech library</a></span>
+<address>1200 E California Blvd, Mail Code 1-32, Pasadena, CA 91125-3200</address> 
+<span>Phone: <a href="tel:+1-626-395-3405">(626)395-3405</a></span>
+<span><a href="mailto:library@caltech.edu">Email Us</a></span>
+<a class="cl-hide" href="sitemap.xml">Site Map</a>
+</footer>
+</body>
+</html>
