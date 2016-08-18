@@ -42,7 +42,7 @@ stderr with catastrophic errors exiting with a value 1. If the program is succes
 ## Example
 
 ```shell
-    xlquery -sheet "Title List" -overwrite ./testdata/demo2.xlsx Sheet1 A C 
+    xlquery -sheet "Title List" -overwrite ./testdata/demo2.xlsx A C 
 ```
 
 This opens demo2.xlsx and uses the sheet named "Title List". It populates fresh results in column *C* based on the 

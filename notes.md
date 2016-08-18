@@ -10,3 +10,4 @@
     + Can I create an search interface?
     + Do I need to maintain my own index?
     + Do I create a sheet that I can use as an auto-complete source in Excel?
++ Look at Tidwall's GJSON as a means of providing a jq like dot path language for output
