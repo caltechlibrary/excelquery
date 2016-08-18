@@ -24,33 +24,52 @@
 <section>
 <h1>xlquery</h1>
 
-<p>xlquery is an experiment with workbook files (.xlsx) taking a column as search query strings and
-putting the results in a related column of the spreadsheet.</p>
+<p>xlquery is an experimental utility designed to update workbook files (.xlsx) taking a column as search query strings and
+putting the results in another column of the same spreadsheet. This proof of concept works with EPrints repository
+software relying on advanced search and results returned in RSS2 format. By default the search if performanced against
+<a href="https://authors.library.caltech.edu">CaltechAUTHORS</a> repository. You can point at a different EPrints repository by
+setting the environment variable <em>EPRINTS_SEARCH_URL</em>.</p>
 
-<p>Inputs</p>
+<h2>USAGE</h2>
 
-<ul>
-<li>Workbook filename</li>
-<li>column for query string</li>
-<li>column for results</li>
-<li>data path to result value</li>
-<li>URL for service or filename to scan</li>
-</ul>
-
-<p>Outputs</p>
-
-<ul>
-<li>revised Workbook filename with the results column populated where data was found</li>
-</ul>
-
-<h2>Demo</h2>
-
-<pre><code class="language-shell">    make
-    ./bin/xlquery -overwrite ./testdata/demo2.xlsx Sheet1 A C &quot;.item[].link&quot;
+<pre><code class="language-shell">    xlquery [OPTIONS] WORKBOOK_NAME QUERY_COLUMN RESULT_COLUMN
 </code></pre>
 
-<p>This opens demo2.xlsx and populates fresh results in column C based on the data path of &ldquo;.item[].link&rdquo; from the RSS2 response
-in the search request.</p>
+<p>The command line program <em>xlquery</em> takes the name of a xlsx file along with the column name for the query string
+and one for the result. By default it searches on &ldquo;Sheet1&rdquo;. This can be changed with the &ldquo;-s&rdquo; command line option.</p>
+
+<p>The simple form where column <em>A</em> holds the query string and results will be put in column <em>B</em></p>
+
+<pre><code class="language-shell">    xlquery titlelist.xlsx A B
+</code></pre>
+
+<p><em>xlquery</em> will display console message describing the processing on stdout. If there are errors they will be sent to
+stderr with catastrophic errors exiting with a value 1. If the program is successful it will exit with the value 0.</p>
+
+<ul>
+<li>Sheet name should correspond to the sheet you want to run through (e.g. &ldquo;Sheet1&rdquo;)</li>
+<li>Column names are in Excel&rsquo;s letter format (e.g. &ldquo;A&rdquo;, &ldquo;FX&rdquo;, &ldquo;BBC&rdquo;).</li>
+<li>data path is the part of the result you want to use (e.g. &ldquo;.item[].link&rdquo; is the RSS item link field)</li>
+</ul>
+
+<h2>OPTIONS</h2>
+
+<pre><code>-d, -datapath   set the data path to return for results, e.g. &quot;.item[].link&quot;
+-h, -help   show help information
+-l, -license    show license information
+-o, -overwrite  overwrite the results column
+-s, -sheet  set the sheet name, e.g. &quot;Sheet1&quot;
+-v, -version    show version information
+</code></pre>
+
+<h2>Example</h2>
+
+<pre><code class="language-shell">    xlquery -sheet &quot;Title List&quot; -overwrite ./testdata/demo2.xlsx Sheet1 A C 
+</code></pre>
+
+<p>This opens demo2.xlsx and uses the sheet named &ldquo;Title List&rdquo;. It populates fresh results in column <em>C</em> based on the
+query string in column <em>A</em>. The results are taken from the data path of &ldquo;.item[].link&rdquo; from the RSS2
+response in the search request.</p>
 
 </section>
 

@@ -37,7 +37,10 @@ var (
 	showVersion bool
 	showLicense bool
 
-	overwriteResult bool
+	eprintsSearchURL = "http://authors.library.caltech.edu/cgi/search/advanced/"
+	sheetName        = "Sheet1"
+	dataPath         = ".item[].link"
+	overwriteResult  = false
 )
 
 const (
@@ -61,18 +64,18 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 func usage(fp *os.File, appName string) {
 	fmt.Fprintf(fp, `
- USAGE: %s [OPTION] WORKBOOK_NAME SHEET_NAME QUERY_COLUMN RESULT_COLUMN DATA_PATH
+ USAGE: %s [OPTION] WORKBOOK_NAME QUERY_COLUMN RESULT_COLUMN
 
- Populate an spreadsheet in ".xlsx" format by using a query column's value as a query string
- updating the result column's value (without overwriting existing data).
+ Populate a workbook (e.g. ".xlsx" file) by using a query column's value as a query string
+ updating the result column's value (by default it does not overwrite existing data).
 
- + Sheet name should correspond to the sheet you want to run through (e.g. "Sheet 1")
- + Column names are in Excel's letter format (e.g. "A", "FX", "BBC").
- + data path is the part of the result you want to use (e.g. url matching the title queried)
+ + The default sheet name to use in a workbook is "Sheet1"
+ + The default datapath ".item[].link" which represents an RSS item's link field
+ + Column names are in letter format (e.g. "A" is column 1, "B" column 2, etc.)
 
  OPTIONS
 
-			   `, appName)
+`, appName)
 
 	flag.VisitAll(func(f *flag.Flag) {
 		if len(f.Name) > 1 {
@@ -86,6 +89,7 @@ func usage(fp *os.File, appName string) {
 }
 
 func init() {
+	// General flags
 	flag.BoolVar(&showHelp, "h", false, "show help information")
 	flag.BoolVar(&showHelp, "help", false, "show help information")
 	flag.BoolVar(&showVersion, "v", false, "show version information")
@@ -93,8 +97,18 @@ func init() {
 	flag.BoolVar(&showLicense, "l", false, "show license information")
 	flag.BoolVar(&showLicense, "license", false, "show license information")
 
-	flag.BoolVar(&overwriteResult, "o", false, "overwrite the results column")
-	flag.BoolVar(&overwriteResult, "overwrite", false, "overwrite the results column")
+	// App specific flags
+	flag.BoolVar(&overwriteResult, "o", overwriteResult, "overwrite the results column")
+	flag.BoolVar(&overwriteResult, "overwrite", overwriteResult, "overwrite the results column")
+	flag.StringVar(&sheetName, "s", sheetName, "set the sheet name, e.g. \"Sheet1\"")
+	flag.StringVar(&sheetName, "sheet", sheetName, "set the sheet name, e.g. \"Sheet1\"")
+	flag.StringVar(&dataPath, "d", dataPath, "set the datapath for results, e.g. \".item[].link\"")
+	flag.StringVar(&dataPath, "datapath", dataPath, "set the datapath for results, e.g. \".item[].link\"")
+
+	// Set from environment
+	if val := os.Getenv("EPRINTS_SEARCH_URL"); val != "" {
+		eprintsSearchURL = val
+	}
 }
 
 func main() {
@@ -114,33 +128,34 @@ func main() {
 	}
 
 	args := flag.Args()
-	if len(args) < 5 {
-		fmt.Fprintf(os.Stderr, "USAGE: %s XLXS_FILENAME SHEET_NAME QUERY_COLUMN RESULT_COLUMN DATA_PATH\n", appname)
+	if len(args) < 3 {
+		fmt.Fprintf(os.Stderr, "USAGE: %s XLXS_FILENAME QUERY_COLUMN RESULT_COLUMN\n", appname)
 		os.Exit(1)
 	}
-	fname, sname, queryColumn, resultsColumn, dataPath := args[0], args[1], args[2], args[3], args[4]
+	fname, queryColumn, resultsColumn := args[0], args[1], args[2]
 
-	fmt.Printf("Test fname: %s, sheet: %s, queryColumn: %s, resultColumn: %s, dataPath %s\n", fname, sname, queryColumn, resultsColumn, dataPath)
+	fmt.Printf("Workbook name: %s, queryColumn: %s, resultColumn: %s\n", fname, queryColumn, resultsColumn)
 	workbook, err := xlsx.OpenFile(fname)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Can't open %s, %s", fname, err)
 		os.Exit(1)
 	}
-	if sheet, ok := workbook.Sheet[sname]; ok == true {
+	if sheet, ok := workbook.Sheet[sheetName]; ok == true {
 		qIndex, err := xlquery.ColumnNameToIndex(queryColumn)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Can't find column %s, in %s.%s, %s", queryColumn, fname, sname, err)
+			fmt.Fprintf(os.Stderr, "Can't find column %s, in %s.%s, %s", queryColumn, fname, sheetName, err)
 			os.Exit(1)
 		}
 		rIndex, err := xlquery.ColumnNameToIndex(resultsColumn)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Can't find column %s, in %s.%s, %s", queryColumn, fname, sname, err)
+			fmt.Fprintf(os.Stderr, "Can't find column %s, in %s.%s, %s", queryColumn, fname, sheetName, err)
 			os.Exit(1)
 		}
-		// FIXME: This should not be hardcoded, setup as a environment var? a commmand line option?
-		eprintsAPI, err := url.Parse("http://authors.library.caltech.edu/cgi/search/advanced/")
+
+		// This defaults to CaltechAUTHORs advanced search, can be overwritten in the environment.
+		eprintsAPI, err := url.Parse(eprintsSearchURL)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Can't parse CaltechAUTHORS URL %s", err)
+			fmt.Fprintf(os.Stderr, "Can't parse CaltechAUTHORS URL %s, %s", eprintsSearchURL, err)
 			os.Exit(1)
 		}
 		saveWorkbook := false
@@ -190,7 +205,12 @@ func main() {
 		}
 		if saveWorkbook == true {
 			fmt.Printf("Writing results to %s\n", fname)
-			workbook.Save(fname)
+			err := workbook.Save(fname)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Can't save %s, %s\n", fname, err)
+				os.Exit(1)
+			}
+			fmt.Fprintf(os.Stdout, "%s saved.", fname)
 		}
 	}
 }
