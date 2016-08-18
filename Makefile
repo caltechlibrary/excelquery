@@ -24,6 +24,9 @@ fmt:
 	goimports -w rss2/rss2_test.go
 	goimports -w cmds/$(PROG)/$(PROG).go
 
+website:
+	./mk-website.bash
+
 save:
 	./mk-website.bash
 	git commit -am "quick save"
