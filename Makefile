@@ -27,15 +27,8 @@ fmt:
 	goimports -w cmds/$(PROG)/$(PROG).go
 	goimports -w webapp/webapp.go
 
-<<<<<<< HEAD
-website:
-	./mk-website.bash
-
-save:
-=======
 save: fmt
 	./mk-webapp.bash
->>>>>>> 03706367576b61b5f455b6c1b838d7ee5c5ba8b2
 	./mk-website.bash
 	git commit -am "quick save"
 	git push origin master
