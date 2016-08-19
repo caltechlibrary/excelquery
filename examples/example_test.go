@@ -26,6 +26,23 @@ import (
 	"github.com/caltechlibrary/xlquery"
 )
 
+// ExampleXLQuery create a XLQuery object for running latter
+func ExampleXLQuery() {
+	// Create a new empty XLQuery
+	xlq := new(xlquery.XLQuery)
+	// Set some sane defaults
+	xlq.Init()
+	// Now you can overwrite them as necessary...
+	xlq.WorkbookName = path.Join("testdata", "test-1.xlsx")
+	xlq.SheetName = "Sheet1"
+	xlq.QueryColumn = "A"
+	xlq.ResultColumn = "B"
+	xlq.OverwriteResult = true
+	xlq.SkipFirstRow = true
+	// At this point you can run xlquery with the CliRunner() or WebRunner() depending
+	// on your environment.
+}
+
 // ExampleCliRunner uses an XLQuery structure for sain settings and the CliRunner() function to process
 func ExampleCliRunner() {
 	// Creates a new
