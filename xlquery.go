@@ -20,7 +20,6 @@ package xlquery
 
 import (
 	"encoding/base64"
-	"encoding/xml"
 	"errors"
 	"io/ioutil"
 	"net/http"
@@ -34,50 +33,22 @@ import (
 
 const (
 	// Version of this package
-	Version = "v0.0.1"
+	Version = `v0.0.1`
 )
 
-// XLQuery holds the information neccessary to process an Excel Workbook for both
-// the command line and in a web browser via GopherJS
+// XLQuery holds the settings to run the XLQuery process over a spreadsheet contacting the
+// EPrints repository search CGI script.
 type XLQuery struct {
-	XMLName          xml.Name `json:"-"`
-	Version          string   `xml:"version" json:"version"`
-	EPrintsSearchURL string   `xml:"eprintsSearchURL" json:"eprintsSearchURL"`
-	ResultDataPath   string   `xml:"resultsDataPath" json:"resultsDataPath"`
-	WorkbookName     string   `xml:"workbookName" json:"workbookName"`
-	SheetName        string   `xml:"sheetName" json:"sheetName"`
-	QueryColumn      string   `xml:"queryColumn" json:"queryColumn"`
-	ResultColumn     string   `xml:"resultColumn" json:"resultColumn"`
-	SkipFirstRow     bool     `xml:"skipFirstRow" json:"skipFirstRow"`
-	OverwriteResult  bool     `xml:"overwriteResult" json:"overwriteResult"`
-	DataURL          string   `xml:"dataURL" json:"dataURL"`
-	Errors           []string `xml:"errors" json:"errors"`
-}
-
-func (xlq *XLQuery) Error(e interface{}) {
-	switch e.(type) {
-	case error:
-		xlq.Errors = append(xlq.Errors, e.(error).Error())
-	case string:
-		xlq.Errors = append(xlq.Errors, e.(string))
-	}
-}
-
-// dataURLToByteArray converts string dataURL to byte array or returns an error
-func dataURLToByteArray(src string) ([]byte, error) {
-	var pre = "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,"
-	if strings.HasPrefix(src, pre) {
-		return base64.StdEncoding.DecodeString(strings.TrimPrefix(src, pre))
-
-	}
-	return []byte(src), errors.New("Not a data URL for type " + pre)
-}
-
-// byteArrayToDataURL converts a byte array back into a DataURL
-func byteArrayToDataURL(data []byte) string {
-	var pre = "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,"
-	src := base64.StdEncoding.EncodeToString(data)
-	return pre + src
+	EPrintsSearchURL string
+	ResultDataPath   string
+	WorkbookName     string
+	SheetName        string
+	QueryColumn      string
+	ResultColumn     string
+	SkipFirstRow     bool
+	OverwriteResult  bool
+	DataURL          string
+	ErrorList        []string
 }
 
 // columnNameToIndex turns a column reference e.g. 'A', 'BF' into a zero-based array position
@@ -202,8 +173,8 @@ func request(api *url.URL, headers map[string]string) ([]byte, error) {
 // given an RSS2 document return all the entries matching so we can apply some sort of data path
 // e.g. .version, .channel.title, .channel.link, .item[].link, .item[].guid, .item[].title, .item[].description
 
-// CliRun is the run method for a command line tool
-func CliRun(xlq *XLQuery, println func(string)) error {
+// CliRunner is the run method for a command line tool
+func CliRunner(xlq *XLQuery, println func(string)) error {
 	workbook, err := xlsx.OpenFile(xlq.WorkbookName)
 	if err != nil {
 		return errors.New("Can't open " + xlq.WorkbookName + ", " + err.Error())
@@ -224,9 +195,13 @@ func CliRun(xlq *XLQuery, println func(string)) error {
 			return errors.New("Can't parse CaltechAUTHORS URL " + xlq.EPrintsSearchURL + ", " + err.Error())
 		}
 		saveWorkbook := false
+		start := 0
+		if xlq.SkipFirstRow == true {
+			start = 1
+		}
 		for i, row := range sheet.Rows {
-			// Assume first row of the spreadsheet is headings
-			if i > 0 {
+			if i >= start {
+				// Assume first row of the spreadsheet is headings
 				// If row is too short for append necessary cells
 				if len(row.Cells) <= rIndex {
 					for len(row.Cells) <= rIndex {
@@ -275,15 +250,96 @@ func CliRun(xlq *XLQuery, println func(string)) error {
 			err := workbook.Save(xlq.WorkbookName)
 			if err != nil {
 				xlq.Error("Can't save " + xlq.WorkbookName + ", " + err.Error())
-				return errors.New(strings.Join(xlq.Errors, "\n"))
+				return errors.New(xlq.Errors())
 			}
 			println("Wrote " + xlq.WorkbookName)
 		}
 	}
-	if len(xlq.Errors) > 0 {
-		return errors.New(strings.Join(xlq.Errors, "\n"))
+	if len(xlq.ErrorList) > 0 {
+		return errors.New(xlq.Errors())
 	}
 	return nil
 }
 
-// WebRunner wrapper for running inside a web browser
+//
+// Web code, the following functions are for using with GopherJS
+//
+
+// Init initializes a XLQuery object with reasonable values.
+func (xlq *XLQuery) Init() {
+	xlq.EPrintsSearchURL = `http://authors.library.caltech.edu/cgi/search/advanced/`
+	xlq.ResultDataPath = `.item[].link`
+	xlq.WorkbookName = `Untitled.xlsx`
+	xlq.SheetName = `Sheet1`
+	xlq.QueryColumn = ``
+	xlq.ResultColumn = ``
+	xlq.SkipFirstRow = true
+	xlq.OverwriteResult = false
+	xlq.DataURL = ``
+	xlq.ErrorList = []string{}
+}
+
+func (xlq *XLQuery) Error(e interface{}) {
+	switch e.(type) {
+	case error:
+		xlq.ErrorList = append(xlq.ErrorList, e.(error).Error())
+	case string:
+		xlq.ErrorList = append(xlq.ErrorList, e.(string))
+	}
+}
+
+func (xlq *XLQuery) Errors() string {
+	return strings.Join(xlq.ErrorList, "\n")
+}
+
+// dataURLPrefix gets the data URL's previs up through and including ';base64,'
+func dataURLPrefix(src string) string {
+	// Notes: "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,"
+	var (
+		pre = `data:`
+		b64 = `;base64,`
+	)
+	if strings.HasPrefix(src, pre) && strings.Contains(src, b64) {
+		i := strings.Index(src, b64)
+		if i > -1 {
+			return src[9 : i+8]
+		}
+	}
+	// An emptry string means no prefix found
+	return ""
+}
+
+// dataURLToByteArray converts a data URL to byte array or returns an error
+func dataURLToByteArray(pre, src string) ([]byte, error) {
+	if strings.HasPrefix(src, pre) {
+		return base64.StdEncoding.DecodeString(strings.TrimPrefix(src, pre))
+	}
+	return []byte(src), errors.New("Not a data URL " + pre)
+}
+
+// byteArrayToDataURL takes a prefix and byte array truning a string formatted as a data URL
+func byteArrayToDataURL(pre string, buf []byte) string {
+	// Notes: "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,"
+	return pre + base64.StdEncoding.EncodeToString(buf)
+}
+
+// WebRunner takes simple JS types as parameters and returns a dataURL string
+/*
+func WebRunner(eprintsSearchURL, resultDataPath, workbookName, sheeteName, queryColumn, resultColumn string, skipFirstRow, overrwiteResult bool, dataURL string) string {
+	xlq := &XLQuery{
+		EPrintsSearchURL: eprintsSearchURL,
+		ResultDataPath:   resultDataPath,
+		WorkbookName:     workbookName,
+		SheetName:        sheetName,
+		QueryColumn:      queryColumn,
+		ResultColumn:     resultColumn,
+		SkipFirstRow:     skipFirstRow,
+		OverwriteResult:  overwriteResult,
+		DataURL:          dataURL,
+		ErrorList:           []string{},
+	}
+*/
+func (xlq *XLQuery) WebRunner(dataURL string) string {
+	//FIXME: need a real implementation
+	return `data:text/plain;base64,` + base64.StdEncoding.EncodeToString([]byte("Hello World!!!"))
+}

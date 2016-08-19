@@ -9,13 +9,16 @@
         resultColumn = document.getElementById("resultColumn"),
         runButton = document.getElementById("xlqRun"),
         resultBlock = document.getElementById("xlrBlock"),
-        dataURL = "";
+        dataURL = "",
+        xlq = xlquery.New();
 
+    
     workbook.addEventListener("change", function (evt)  {
-      var fp = workbook.files[0],
+      var fp = evt.target.files[0] || {},
           files = this.files,
           reader = new FileReader();
 
+      xlq.WorkbookName = fp.fileName || ""; 
       console.log("DEBUG evt.target.files", evt.target.files[0]);
       reader.onload = function (eFile) {
           console.log("DEBUG eFile.target.result (data url)", eFile.target.result.substring(0, 64));
@@ -26,28 +29,29 @@
 
     runButton.addEventListener("click", function (evt) {
         var isAlpha = new RegExp("^[a-z,A-Z]+$", "g"),
-            isDataURL = new RegExp("^data\:application/vnd\.openxmlformats-officedocument\.spreadsheetml\.sheet;base64,","i"),
-            xlr = {},
-            xlq = {};
+            isDataURL = new RegExp("^data\:application/","i");
 
         console.log("DEBUG runButton clicked");
+
         /* Validate queryColumn */
         if (!queryColumn.value.match(isAlpha)) {
             console.log("ERROR: queryColumn show be in the for A, AA, ABC", queryColumn);
             return;
         }
+        xlq.QueryColumn = queryColumn.value.trim();
 
         /* Validate resultColumn */
         if (!resultColumn.value.match(isAlpha)) {
             console.log("ERROR: resultColumn show be in the for A, AA, ABC", resultColumn);
             return;
         }
+        xlq.ResultColumn = resultColumn.value.trim();
 
         /* Validate overwriteResult */
         if (overwriteResult.checked === true) {
-            xlq.Overwrite = true;
+            xlq.OverwriteResult = true;
         } else {
-            xlq.Overwrite = false;
+            xlq.OverwriteResult = false;
         }
 
         /* Validate sheetName */
@@ -70,7 +74,7 @@
             return;
         }
         console.log("DEBUG got all the way to call xlquery.Run()");
-        dataURL = xlquery.Run(dataURL, queryColumn.value, resultColumn.value);
+        dataURL = xlq.WebRunner(dataURL);
         console.log("DEBUG output dataURL: ", dataURL);
         xlrBlock.innerHTML = "<pre>"+dataURL+"</pre>";
     }, false);

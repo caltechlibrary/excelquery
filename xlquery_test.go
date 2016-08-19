@@ -85,7 +85,7 @@ func TestColumnNameToIndex(t *testing.T) {
 	}
 
 	for s, i := range testVals {
-		r, err := ColumnNameToIndex(s)
+		r, err := columnNameToIndex(s)
 		if err != nil {
 			t.Errorf("Couldn't convert %s to int, %s", s, err)
 		}
@@ -137,17 +137,17 @@ func TestSheetHandling(t *testing.T) {
 		for j, _ := range sheet.Rows {
 			q := sheet.Cell(j, 0)
 			r := sheet.Cell(j, 2)
-			qTest := GetCell(sheet, j, 0)
+			qTest := getCell(sheet, j, 0)
 			if q.Value != qTest {
 				t.Errorf("GetCell(sheet, %d, 0) expected %s, got %s", j, q.Value, qTest)
 			}
 			if r.Value != "" {
-				err := UpdateCell(sheet, j, 2, "This is a test", false)
+				err := updateCell(sheet, j, 2, "This is a test", false)
 				if err != nil {
 					t.Errorf("Expected an err on update to cell %d,2", j)
 				}
 			}
-			err := UpdateCell(sheet, j, 2, "This is a test 2", true)
+			err := updateCell(sheet, j, 2, "This is a test 2", true)
 			if err != nil {
 				t.Errorf("Expected err to be nil on update to cell %d,2, %s", j, err)
 			}
@@ -166,7 +166,7 @@ func TestQuerySupport(t *testing.T) {
 		t.FailNow()
 	}
 
-	eprintsAPI = UpdateParameters(eprintsAPI, map[string]string{
+	eprintsAPI = updateParameters(eprintsAPI, map[string]string{
 		"title":  "Molecules in solution",
 		"output": "RSS2",
 	})
@@ -174,7 +174,7 @@ func TestQuerySupport(t *testing.T) {
 		t.Errorf("Something went wrong updating eprintsAPI query")
 		t.FailNow()
 	}
-	buf, err := Request(eprintsAPI, map[string]string{})
+	buf, err := request(eprintsAPI, map[string]string{})
 	if err != nil {
 		t.Errorf("Failed to run %s, %s", eprintsAPI.String(), err)
 		t.FailNow()

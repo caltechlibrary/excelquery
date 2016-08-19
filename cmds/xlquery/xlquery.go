@@ -139,7 +139,6 @@ func main() {
 
 	fmt.Printf("Workbook name: %s, queryColumn: %s, resultColumn: %s\n", fname, queryColumn, resultColumn)
 	xlq := &xlquery.XLQuery{
-		Version:          xlquery.Version,
 		EPrintsSearchURL: eprintsSearchURL,
 		ResultDataPath:   dataPath,
 		WorkbookName:     fname,
@@ -149,9 +148,9 @@ func main() {
 		OverwriteResult:  overwriteResult,
 		SkipFirstRow:     skipFirstRow,
 		DataURL:          "",
-		Errors:           []string{},
+		ErrorList:        []string{},
 	}
-	err := xlquery.CliRun(xlq, func(msg string) {
+	err := xlquery.CliRunner(xlq, func(msg string) {
 		fmt.Fprintf(os.Stdout, "%s\n", msg)
 	})
 	if err != nil {
