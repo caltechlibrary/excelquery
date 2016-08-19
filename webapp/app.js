@@ -8,6 +8,7 @@
         queryColumn = document.getElementById("queryColumn"),
         resultColumn = document.getElementById("resultColumn"),
         runButton = document.getElementById("xlqRun"),
+        resultBlock = document.getElementById("xlrBlock"),
         dataURL = "";
 
     workbook.addEventListener("change", function (evt)  {
@@ -30,9 +31,6 @@
             xlq = {};
 
         console.log("DEBUG runButton clicked");
-        /* Instantiate a XLQuery object */
-        xlq = xlquery.New();
-
         /* Validate queryColumn */
         if (!queryColumn.value.match(isAlpha)) {
             console.log("ERROR: queryColumn show be in the for A, AA, ABC", queryColumn);
@@ -71,11 +69,9 @@
             console.log("ERROR: not a dataURL ["+dataURL+"]");
             return;
         }
-        console.log("DEBUG got all the way to call xlq.Run()");
-        xlr = xlq.Run(dataURL, queryColumn.value, resultColumn.value);
-        console.log("DEBUG xlr: ", xlr);
-       
-        // xlr = xlq.Run()...
-        // if not errors create an embedded dataURL for download
+        console.log("DEBUG got all the way to call xlquery.Run()");
+        dataURL = xlquery.Run(dataURL, queryColumn.value, resultColumn.value);
+        console.log("DEBUG output dataURL: ", dataURL);
+        xlrBlock.innerHTML = "<pre>"+dataURL+"</pre>";
     }, false);
 }(document, window))
