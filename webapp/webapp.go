@@ -65,6 +65,7 @@ func (xlq *XLQuery) Init() {
 // processes it much like *main* function in the cli.
 func (xlq *XLQuery) Run(data, queryColumn, resultColumn string) *XLQResponse {
 	xlqResponse := new(XLQResponse)
+	//FIXME: Is this the right method?
 	workbook, err := xlsx.OpenBinary([]byte(data))
 	if err != nil {
 		xlqResponse.Error("Can't read the xlsx content " + err.Error())
