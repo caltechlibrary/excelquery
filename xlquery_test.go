@@ -16,7 +16,7 @@
 //
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-package xlquery
+package xlquery_test
 
 import (
 	"net/url"
@@ -24,6 +24,7 @@ import (
 	"testing"
 
 	// 3rd Party packages
+	"github.com/caltechlibrary/xlquery"
 	"github.com/caltechlibrary/xlquery/rss2"
 	"github.com/tealeg/xlsx"
 )
@@ -85,7 +86,7 @@ func TestColumnNameToIndex(t *testing.T) {
 	}
 
 	for s, i := range testVals {
-		r, err := columnNameToIndex(s)
+		r, err := xlquery.ColumnNameToIndex(s)
 		if err != nil {
 			t.Errorf("Couldn't convert %s to int, %s", s, err)
 		}
@@ -137,17 +138,17 @@ func TestSheetHandling(t *testing.T) {
 		for j, _ := range sheet.Rows {
 			q := sheet.Cell(j, 0)
 			r := sheet.Cell(j, 2)
-			qTest := getCell(sheet, j, 0)
+			qTest := xlquery.GetCell(sheet, j, 0)
 			if q.Value != qTest {
 				t.Errorf("GetCell(sheet, %d, 0) expected %s, got %s", j, q.Value, qTest)
 			}
 			if r.Value != "" {
-				err := updateCell(sheet, j, 2, "This is a test", false)
+				err := xlquery.UpdateCell(sheet, j, 2, "This is a test", false)
 				if err != nil {
 					t.Errorf("Expected an err on update to cell %d,2", j)
 				}
 			}
-			err := updateCell(sheet, j, 2, "This is a test 2", true)
+			err := xlquery.UpdateCell(sheet, j, 2, "This is a test 2", true)
 			if err != nil {
 				t.Errorf("Expected err to be nil on update to cell %d,2, %s", j, err)
 			}
@@ -166,7 +167,7 @@ func TestQuerySupport(t *testing.T) {
 		t.FailNow()
 	}
 
-	eprintsAPI = updateParameters(eprintsAPI, map[string]string{
+	eprintsAPI = xlquery.UpdateParameters(eprintsAPI, map[string]string{
 		"title":  "Molecules in solution",
 		"output": "RSS2",
 	})
@@ -174,7 +175,7 @@ func TestQuerySupport(t *testing.T) {
 		t.Errorf("Something went wrong updating eprintsAPI query")
 		t.FailNow()
 	}
-	buf, err := request(eprintsAPI, map[string]string{})
+	buf, err := xlquery.Request(eprintsAPI, map[string]string{})
 	if err != nil {
 		t.Errorf("Failed to run %s, %s", eprintsAPI.String(), err)
 		t.FailNow()

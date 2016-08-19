@@ -51,8 +51,8 @@ type XLQuery struct {
 	ErrorList        []string
 }
 
-// columnNameToIndex turns a column reference e.g. 'A', 'BF' into a zero-based array position
-func columnNameToIndex(colName string) (int, error) {
+// ColumnNameToIndex turns a column reference e.g. 'A', 'BF' into a zero-based array position
+func ColumnNameToIndex(colName string) (int, error) {
 	m := map[string]int{
 		"A": 1,
 		"B": 2,
@@ -97,8 +97,8 @@ func columnNameToIndex(colName string) (int, error) {
 	return sum - 1, nil
 }
 
-// getCell given a Spreadsheet, row and col, return the query string or error
-func getCell(sheet *xlsx.Sheet, row int, col int) string {
+// GetCell given a Spreadsheet, row and col, return the query string or error
+func GetCell(sheet *xlsx.Sheet, row int, col int) string {
 	cell := sheet.Cell(row, col)
 	if cell != nil {
 		return cell.Value
@@ -106,8 +106,8 @@ func getCell(sheet *xlsx.Sheet, row int, col int) string {
 	return ""
 }
 
-// updateCell given a Spreadsheeet, row and col, save the value respecting the overWrite flag or return an error
-func updateCell(sheet *xlsx.Sheet, row int, col int, value string, overwrite bool) error {
+// UpdateCell given a Spreadsheeet, row and col, save the value respecting the overWrite flag or return an error
+func UpdateCell(sheet *xlsx.Sheet, row int, col int, value string, overwrite bool) error {
 	cell := sheet.Cell(row, col)
 	if overwrite == false && cell.Value != "" {
 		return errors.New(`Cell already has a value ` + cell.Value)
@@ -120,7 +120,7 @@ func updateCell(sheet *xlsx.Sheet, row int, col int, value string, overwrite boo
 	return nil
 }
 
-// updateParameters adds/overwrites any mapped values to the URL object passed in.
+// UpdateParameters adds/overwrites any mapped values to the URL object passed in.
 //
 // URL attribute for EPrints advanced search (output is Atom):
 //  Scheme: http
@@ -135,7 +135,7 @@ func updateCell(sheet *xlsx.Sheet, row int, col int, value string, overwrite boo
 // xlquery.UpdateQuery(api, map[string]string{"title": title, "output":"Atom"})
 // data, err := http.Get(api.String())
 // ...
-func updateParameters(api *url.URL, queryTerms map[string]string) *url.URL {
+func UpdateParameters(api *url.URL, queryTerms map[string]string) *url.URL {
 	q := api.Query()
 	for key, val := range queryTerms {
 		q.Set(key, val)
@@ -144,9 +144,9 @@ func updateParameters(api *url.URL, queryTerms map[string]string) *url.URL {
 	return api
 }
 
-// request executes an HTTP request to the service returning a Query structure
+// Request executes an HTTP request to the service returning a Query structure
 // and error value.
-func request(api *url.URL, headers map[string]string) ([]byte, error) {
+func Request(api *url.URL, headers map[string]string) ([]byte, error) {
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", api.String(), nil)
 	if err != nil {
@@ -180,11 +180,11 @@ func CliRunner(xlq *XLQuery, println func(string)) error {
 		return errors.New("Can't open " + xlq.WorkbookName + ", " + err.Error())
 	}
 	if sheet, ok := workbook.Sheet[xlq.SheetName]; ok == true {
-		qIndex, err := columnNameToIndex(xlq.QueryColumn)
+		qIndex, err := ColumnNameToIndex(xlq.QueryColumn)
 		if err != nil {
 			return errors.New("Can't find column " + xlq.QueryColumn + ", in " + xlq.WorkbookName + "." + xlq.SheetName + ", " + err.Error())
 		}
-		rIndex, err := columnNameToIndex(xlq.ResultColumn)
+		rIndex, err := ColumnNameToIndex(xlq.ResultColumn)
 		if err != nil {
 			return errors.New("Can't find column " + xlq.ResultColumn + ", in " + xlq.WorkbookName + "." + xlq.SheetName + ", " + err.Error())
 		}
@@ -209,12 +209,12 @@ func CliRunner(xlq *XLQuery, println func(string)) error {
 					}
 				}
 				// Update the search paraters
-				searchString := getCell(sheet, i, qIndex)
-				eprintsAPI = updateParameters(eprintsAPI, map[string]string{
+				searchString := GetCell(sheet, i, qIndex)
+				eprintsAPI = UpdateParameters(eprintsAPI, map[string]string{
 					"title":  searchString,
 					"output": "RSS2",
 				})
-				buf, err := request(eprintsAPI, map[string]string{})
+				buf, err := Request(eprintsAPI, map[string]string{})
 				if err != nil {
 					xlq.Error(eprintsAPI.String() + " request failed, " + err.Error())
 				} else {
@@ -229,7 +229,7 @@ func CliRunner(xlq *XLQuery, println func(string)) error {
 							s := strings.Join(links[xlq.ResultDataPath].([]string), "\n")
 							if s != "" {
 								println(`Searching for "` + searchString + `", found: ` + "\n" + s)
-								err = updateCell(sheet, i, rIndex, s, xlq.OverwriteResult)
+								err = UpdateCell(sheet, i, rIndex, s, xlq.OverwriteResult)
 								if err != nil {
 									xlq.Error("Failed to update cell results for " + searchString + ", " + err.Error())
 								} else {
@@ -324,21 +324,6 @@ func byteArrayToDataURL(pre string, buf []byte) string {
 }
 
 // WebRunner takes simple JS types as parameters and returns a dataURL string
-/*
-func WebRunner(eprintsSearchURL, resultDataPath, workbookName, sheeteName, queryColumn, resultColumn string, skipFirstRow, overrwiteResult bool, dataURL string) string {
-	xlq := &XLQuery{
-		EPrintsSearchURL: eprintsSearchURL,
-		ResultDataPath:   resultDataPath,
-		WorkbookName:     workbookName,
-		SheetName:        sheetName,
-		QueryColumn:      queryColumn,
-		ResultColumn:     resultColumn,
-		SkipFirstRow:     skipFirstRow,
-		OverwriteResult:  overwriteResult,
-		DataURL:          dataURL,
-		ErrorList:           []string{},
-	}
-*/
 func (xlq *XLQuery) WebRunner(dataURL string) string {
 	//FIXME: need a real implementation
 	return `data:text/plain;base64,` + base64.StdEncoding.EncodeToString([]byte("Hello World!!!"))
