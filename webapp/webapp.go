@@ -1,5 +1,5 @@
 //
-// xlquery/webapp/webapp.go is a wrapper for xlquery.go targetting GopherJS and embedding xlquery functionality as a webapp in a web browser.
+// xlquery/webapp/xlquery.go is a wrapper for xlquery.go targetting GopherJS and embedding xlquery functionality as a webapp in a web browser.
 //
 // @author R. S. Doiel, <rsdoiel@caltech.edu>
 //
@@ -20,6 +20,8 @@ package main
 
 import (
 	"bytes"
+	"encoding/base64"
+	"errors"
 	"io"
 	"net/url"
 	"strings"
@@ -52,8 +54,8 @@ func (xlqr *XLQResponse) Error(s string) {
 	xlqr.Errors = append(xlqr.Errors, s)
 }
 
-// Init sets the default values of the XLQuery object.
-func (xlq *XLQuery) Init() {
+// init sets the default values of the XLQuery object.
+func (xlq *XLQuery) init() {
 	xlq.Version = xlquery.Version
 	xlq.EPrintsSearchURL = "http://authors.library.caltech.edu/cgi/search/advanced/"
 	xlq.SheetName = "Sheet1"
@@ -61,12 +63,31 @@ func (xlq *XLQuery) Init() {
 	xlq.Overwrite = false
 }
 
+// dataURLToByteArray converts a data URL to byte array or returns an error
+func dataURLToByteArray(src string) ([]byte, error) {
+	var pre = "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,"
+	if strings.HasPrefix(src, pre) {
+		return base64.StdEncoding.DecodeString(strings.TrimPrefix(src, pre))
+
+	}
+	return []byte(src), errors.New("Not a data URL for type " + pre)
+}
+
 // Run take the byte array of the raw XLSX source code and
 // processes it much like *main* function in the cli.
-func (xlq *XLQuery) Run(data, queryColumn, resultColumn string) *XLQResponse {
+func (xlq *XLQuery) Run(src, queryColumn, resultColumn string) *XLQResponse {
+	var (
+		data []byte
+		err  error
+	)
 	xlqResponse := new(XLQResponse)
-	//FIXME: Is this the right method?
-	workbook, err := xlsx.OpenBinary([]byte(data))
+
+	data, err = dataURLToByteArray(src)
+	if err != nil {
+		xlqResponse.Error(err.Error())
+	}
+
+	workbook, err := xlsx.OpenBinary(data)
 	if err != nil {
 		xlqResponse.Error("Can't read the xlsx content " + err.Error())
 		return xlqResponse
@@ -147,7 +168,9 @@ func (xlq *XLQuery) Run(data, queryColumn, resultColumn string) *XLQResponse {
 }
 
 func NewXLQuery() *js.Object {
-	return js.MakeWrapper(&XLQuery{})
+	xlq := new(XLQuery)
+	xlq.init()
+	return js.MakeWrapper(xlq)
 }
 
 func NewXLQResponse() *js.Object {
