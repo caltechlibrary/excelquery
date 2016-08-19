@@ -19,14 +19,16 @@
 package xlquery
 
 import (
+	"encoding/base64"
 	"encoding/xml"
-	"fmt"
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
 
 	// 3rd Party packages
+	"github.com/caltechlibrary/xlquery/rss2"
 	"github.com/tealeg/xlsx"
 )
 
@@ -41,7 +43,7 @@ type XLQuery struct {
 	XMLName          xml.Name `json:"-"`
 	Version          string   `xml:"version" json:"version"`
 	EPrintsSearchURL string   `xml:"eprintsSearchURL" json:"eprintsSearchURL"`
-	ResultsDataPath  string   `xml:"resultsDataPath" json:"resultsDataPath"`
+	ResultDataPath   string   `xml:"resultsDataPath" json:"resultsDataPath"`
 	WorkbookName     string   `xml:"workbookName" json:"workbookName"`
 	SheetName        string   `xml:"sheetName" json:"sheetName"`
 	QueryColumn      string   `xml:"queryColumn" json:"queryColumn"`
@@ -52,8 +54,34 @@ type XLQuery struct {
 	Errors           []string `xml:"errors" json:"errors"`
 }
 
-// ColumnNameToIndex turns a column reference e.g. 'A', 'BF' into a zero-based array position
-func ColumnNameToIndex(colName string) (int, error) {
+func (xlq *XLQuery) Error(e interface{}) {
+	switch e.(type) {
+	case error:
+		xlq.Errors = append(xlq.Errors, e.(error).Error())
+	case string:
+		xlq.Errors = append(xlq.Errors, e.(string))
+	}
+}
+
+// dataURLToByteArray converts string dataURL to byte array or returns an error
+func dataURLToByteArray(src string) ([]byte, error) {
+	var pre = "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,"
+	if strings.HasPrefix(src, pre) {
+		return base64.StdEncoding.DecodeString(strings.TrimPrefix(src, pre))
+
+	}
+	return []byte(src), errors.New("Not a data URL for type " + pre)
+}
+
+// byteArrayToDataURL converts a byte array back into a DataURL
+func byteArrayToDataURL(data []byte) string {
+	var pre = "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,"
+	src := base64.StdEncoding.EncodeToString(data)
+	return pre + src
+}
+
+// columnNameToIndex turns a column reference e.g. 'A', 'BF' into a zero-based array position
+func columnNameToIndex(colName string) (int, error) {
 	m := map[string]int{
 		"A": 1,
 		"B": 2,
@@ -83,7 +111,7 @@ func ColumnNameToIndex(colName string) (int, error) {
 		"Z": 26,
 	}
 	if strings.TrimSpace(colName) == "" {
-		return -1, fmt.Errorf("No column letter provided")
+		return -1, errors.New("No column letter provided")
 	}
 	sum := 0
 	letters := strings.Split(strings.ToUpper(colName), "")
@@ -92,14 +120,14 @@ func ColumnNameToIndex(colName string) (int, error) {
 			sum = sum * 26
 			sum += v
 		} else {
-			return -1, fmt.Errorf("Can't find value for %q in %q", letters[i], colName)
+			return -1, errors.New(`Can't find value for "` + letters[i] + `" in "` + colName + `"`)
 		}
 	}
 	return sum - 1, nil
 }
 
-// GetCell given a Spreadsheet, row and col, return the query string or error
-func GetCell(sheet *xlsx.Sheet, row int, col int) string {
+// getCell given a Spreadsheet, row and col, return the query string or error
+func getCell(sheet *xlsx.Sheet, row int, col int) string {
 	cell := sheet.Cell(row, col)
 	if cell != nil {
 		return cell.Value
@@ -107,11 +135,11 @@ func GetCell(sheet *xlsx.Sheet, row int, col int) string {
 	return ""
 }
 
-// UpdateCell given a Spreadsheeet, row and col, save the value respecting the overWrite flag or return an error
-func UpdateCell(sheet *xlsx.Sheet, row int, col int, value string, overwrite bool) error {
+// updateCell given a Spreadsheeet, row and col, save the value respecting the overWrite flag or return an error
+func updateCell(sheet *xlsx.Sheet, row int, col int, value string, overwrite bool) error {
 	cell := sheet.Cell(row, col)
 	if overwrite == false && cell.Value != "" {
-		return fmt.Errorf("Cell(%d, %d) already has a value %s", row, col, cell.Value)
+		return errors.New(`Cell already has a value ` + cell.Value)
 	}
 	cell.Value = value
 	// Update the style to use TextWrap = true
@@ -121,7 +149,7 @@ func UpdateCell(sheet *xlsx.Sheet, row int, col int, value string, overwrite boo
 	return nil
 }
 
-// UpdateParameters adds/overwrites any mapped values to the URL object passed in.
+// updateParameters adds/overwrites any mapped values to the URL object passed in.
 //
 // URL attribute for EPrints advanced search (output is Atom):
 //  Scheme: http
@@ -136,7 +164,7 @@ func UpdateCell(sheet *xlsx.Sheet, row int, col int, value string, overwrite boo
 // xlquery.UpdateQuery(api, map[string]string{"title": title, "output":"Atom"})
 // data, err := http.Get(api.String())
 // ...
-func UpdateParameters(api *url.URL, queryTerms map[string]string) *url.URL {
+func updateParameters(api *url.URL, queryTerms map[string]string) *url.URL {
 	q := api.Query()
 	for key, val := range queryTerms {
 		q.Set(key, val)
@@ -145,9 +173,9 @@ func UpdateParameters(api *url.URL, queryTerms map[string]string) *url.URL {
 	return api
 }
 
-// Request executes an HTTP request to the service returning a Query structure
+// request executes an HTTP request to the service returning a Query structure
 // and error value.
-func Request(api *url.URL, headers map[string]string) ([]byte, error) {
+func request(api *url.URL, headers map[string]string) ([]byte, error) {
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", api.String(), nil)
 	if err != nil {
@@ -173,3 +201,89 @@ func Request(api *url.URL, headers map[string]string) ([]byte, error) {
 
 // given an RSS2 document return all the entries matching so we can apply some sort of data path
 // e.g. .version, .channel.title, .channel.link, .item[].link, .item[].guid, .item[].title, .item[].description
+
+// CliRun is the run method for a command line tool
+func CliRun(xlq *XLQuery, println func(string)) error {
+	workbook, err := xlsx.OpenFile(xlq.WorkbookName)
+	if err != nil {
+		return errors.New("Can't open " + xlq.WorkbookName + ", " + err.Error())
+	}
+	if sheet, ok := workbook.Sheet[xlq.SheetName]; ok == true {
+		qIndex, err := columnNameToIndex(xlq.QueryColumn)
+		if err != nil {
+			return errors.New("Can't find column " + xlq.QueryColumn + ", in " + xlq.WorkbookName + "." + xlq.SheetName + ", " + err.Error())
+		}
+		rIndex, err := columnNameToIndex(xlq.ResultColumn)
+		if err != nil {
+			return errors.New("Can't find column " + xlq.ResultColumn + ", in " + xlq.WorkbookName + "." + xlq.SheetName + ", " + err.Error())
+		}
+
+		// This defaults to CaltechAUTHORs advanced search, can be overwritten in the environment.
+		eprintsAPI, err := url.Parse(xlq.EPrintsSearchURL)
+		if err != nil {
+			return errors.New("Can't parse CaltechAUTHORS URL " + xlq.EPrintsSearchURL + ", " + err.Error())
+		}
+		saveWorkbook := false
+		for i, row := range sheet.Rows {
+			// Assume first row of the spreadsheet is headings
+			if i > 0 {
+				// If row is too short for append necessary cells
+				if len(row.Cells) <= rIndex {
+					for len(row.Cells) <= rIndex {
+						row.AddCell()
+					}
+				}
+				// Update the search paraters
+				searchString := getCell(sheet, i, qIndex)
+				eprintsAPI = updateParameters(eprintsAPI, map[string]string{
+					"title":  searchString,
+					"output": "RSS2",
+				})
+				buf, err := request(eprintsAPI, map[string]string{})
+				if err != nil {
+					xlq.Error(eprintsAPI.String() + " request failed, " + err.Error())
+				} else {
+					feed, err := rss2.Parse(buf)
+					if err != nil {
+						xlq.Error("Can't parse response " + eprintsAPI.String() + ", " + err.Error())
+					} else {
+						links, err := feed.Filter(xlq.ResultDataPath)
+						if err != nil {
+							xlq.Error("filter on link error, " + err.Error())
+						} else if links != nil {
+							s := strings.Join(links[xlq.ResultDataPath].([]string), "\n")
+							if s != "" {
+								println(`Searching for "` + searchString + `", found: ` + "\n" + s)
+								err = updateCell(sheet, i, rIndex, s, xlq.OverwriteResult)
+								if err != nil {
+									xlq.Error("Failed to update cell results for " + searchString + ", " + err.Error())
+								} else {
+									saveWorkbook = true
+								}
+							} else {
+								println(`No results for "` + searchString + `"`)
+							}
+						}
+						links = nil
+					}
+					feed = nil
+				}
+				buf = nil
+			}
+		}
+		if saveWorkbook == true {
+			err := workbook.Save(xlq.WorkbookName)
+			if err != nil {
+				xlq.Error("Can't save " + xlq.WorkbookName + ", " + err.Error())
+				return errors.New(strings.Join(xlq.Errors, "\n"))
+			}
+			println("Wrote " + xlq.WorkbookName)
+		}
+	}
+	if len(xlq.Errors) > 0 {
+		return errors.New(strings.Join(xlq.Errors, "\n"))
+	}
+	return nil
+}
+
+// WebRunner wrapper for running inside a web browser
