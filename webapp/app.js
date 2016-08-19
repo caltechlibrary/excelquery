@@ -17,7 +17,7 @@
 
       console.log("DEBUG evt.target.files", evt.target.files[0]);
       reader.onload = function (eFile) {
-          console.log("DEBUG eFile.target.result (data url)", eFile.target.result);
+          console.log("DEBUG eFile.target.result (data url)", eFile.target.result.substring(0, 64));
           dataURL = eFile.target.result;
       };
       reader.readAsDataURL(files[0]);
@@ -25,10 +25,11 @@
 
     runButton.addEventListener("click", function (evt) {
         var isAlpha = new RegExp("^[a-z,A-Z]+$", "g"),
-            isDataURL = new RegExp("^data:\w+;base64,","i"),
+            isDataURL = new RegExp("^data\:application/vnd\.openxmlformats-officedocument\.spreadsheetml\.sheet;base64,","i"),
             xlr = {},
             xlq = {};
 
+        console.log("DEBUG runButton clicked");
         /* Instantiate a XLQuery object */
         xlq = xlquery.New();
 
@@ -67,11 +68,12 @@
 
         /* Validate dataURL */
         if (!dataURL.match(isDataURL)) {
-            console.log("ERROR: not a dataURL", dataURL);
+            console.log("ERROR: not a dataURL ["+dataURL+"]");
             return;
         }
+        console.log("DEBUG got all the way to call xlq.Run()");
         xlr = xlq.Run(dataURL, queryColumn.value, resultColumn.value);
-        console.log("DEBUG xlr: ", xlr)
+        console.log("DEBUG xlr: ", xlr);
        
         // xlr = xlq.Run()...
         // if not errors create an embedded dataURL for download
