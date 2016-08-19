@@ -19,6 +19,7 @@
 package xlquery
 
 import (
+	"encoding/xml"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -33,6 +34,23 @@ const (
 	// Version of this package
 	Version = "v0.0.1"
 )
+
+// XLQuery holds the information neccessary to process an Excel Workbook for both
+// the command line and in a web browser via GopherJS
+type XLQuery struct {
+	XMLName          xml.Name `json:"-"`
+	Version          string   `xml:"version" json:"version"`
+	EPrintsSearchURL string   `xml:"eprintsSearchURL" json:"eprintsSearchURL"`
+	ResultsDataPath  string   `xml:"resultsDataPath" json:"resultsDataPath"`
+	WorkbookName     string   `xml:"workbookName" json:"workbookName"`
+	SheetName        string   `xml:"sheetName" json:"sheetName"`
+	QueryColumn      string   `xml:"queryColumn" json:"queryColumn"`
+	ResultColumn     string   `xml:"resultColumn" json:"resultColumn"`
+	SkipFirstRow     bool     `xml:"skipFirstRow" json:"skipFirstRow"`
+	OverwriteResult  bool     `xml:"overwriteResult" json:"overwriteResult"`
+	DataURL          string   `xml:"dataURL" json:"dataURL"`
+	Errors           []string `xml:"errors" json:"errors"`
+}
 
 // ColumnNameToIndex turns a column reference e.g. 'A', 'BF' into a zero-based array position
 func ColumnNameToIndex(colName string) (int, error) {
