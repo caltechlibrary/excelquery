@@ -21,15 +21,11 @@ package main
 import (
 	"flag"
 	"fmt"
-	"net/url"
 	"os"
 	"path"
-	"strings"
 
 	// Caltech Library packages
 	"github.com/caltechlibrary/xlquery"
-	"github.com/caltechlibrary/xlquery/rss2"
-	"github.com/tealeg/xlsx"
 )
 
 var (
@@ -41,6 +37,7 @@ var (
 	sheetName        = "Sheet1"
 	dataPath         = ".item[].link"
 	overwriteResult  = false
+	skipFirstRow     = true
 )
 
 const (
@@ -72,6 +69,8 @@ func usage(fp *os.File, appName string) {
  + The default sheet name to use in a workbook is "Sheet1"
  + The default datapath ".item[].link" which represents an RSS item's link field
  + Column names are in letter format (e.g. "A" is column 1, "B" column 2, etc.)
+ + The environment varaible EPRINTS_SEARCH_URL can overwrite the default
+   CaltechAUTHORS search URL.
 
  OPTIONS
 
@@ -85,7 +84,9 @@ func usage(fp *os.File, appName string) {
 
 	fmt.Fprintf(fp, `
 	
- Version: %s `, xlquery.Version)
+ Version: %s
+
+`, xlquery.Version)
 }
 
 func init() {
@@ -100,10 +101,12 @@ func init() {
 	// App specific flags
 	flag.BoolVar(&overwriteResult, "o", overwriteResult, "overwrite the results column")
 	flag.BoolVar(&overwriteResult, "overwrite", overwriteResult, "overwrite the results column")
+	flag.BoolVar(&skipFirstRow, "S", skipFirstRow, "set boolean for skipping first row of sheet (default true)")
+	flag.BoolVar(&skipFirstRow, "Skip", skipFirstRow, "set boolean for skipping first row of spreadsheet (default true)")
 	flag.StringVar(&sheetName, "s", sheetName, "set the sheet name, e.g. \"Sheet1\"")
 	flag.StringVar(&sheetName, "sheet", sheetName, "set the sheet name, e.g. \"Sheet1\"")
-	flag.StringVar(&dataPath, "d", dataPath, "set the datapath for results, e.g. \".item[].link\"")
-	flag.StringVar(&dataPath, "datapath", dataPath, "set the datapath for results, e.g. \".item[].link\"")
+	flag.StringVar(&dataPath, "d", dataPath, "set the datapath for results (default \".item[].link\")")
+	flag.StringVar(&dataPath, "datapath", dataPath, "set the datapath for results (default \".item[].link\")")
 
 	// Set from environment
 	if val := os.Getenv("EPRINTS_SEARCH_URL"); val != "" {
@@ -132,85 +135,26 @@ func main() {
 		fmt.Fprintf(os.Stderr, "USAGE: %s XLXS_FILENAME QUERY_COLUMN RESULT_COLUMN\n", appname)
 		os.Exit(1)
 	}
-	fname, queryColumn, resultsColumn := args[0], args[1], args[2]
+	fname, queryColumn, resultColumn := args[0], args[1], args[2]
 
-	fmt.Printf("Workbook name: %s, queryColumn: %s, resultColumn: %s\n", fname, queryColumn, resultsColumn)
-	workbook, err := xlsx.OpenFile(fname)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Can't open %s, %s", fname, err)
-		os.Exit(1)
+	fmt.Printf("Workbook name: %s, queryColumn: %s, resultColumn: %s\n", fname, queryColumn, resultColumn)
+	xlq := &xlquery.XLQuery{
+		EPrintsSearchURL: eprintsSearchURL,
+		ResultDataPath:   dataPath,
+		WorkbookName:     fname,
+		SheetName:        sheetName,
+		QueryColumn:      queryColumn,
+		ResultColumn:     resultColumn,
+		OverwriteResult:  overwriteResult,
+		SkipFirstRow:     skipFirstRow,
+		DataURL:          "",
+		ErrorList:        []string{},
 	}
-	if sheet, ok := workbook.Sheet[sheetName]; ok == true {
-		qIndex, err := xlquery.ColumnNameToIndex(queryColumn)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Can't find column %s, in %s.%s, %s", queryColumn, fname, sheetName, err)
-			os.Exit(1)
-		}
-		rIndex, err := xlquery.ColumnNameToIndex(resultsColumn)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Can't find column %s, in %s.%s, %s", queryColumn, fname, sheetName, err)
-			os.Exit(1)
-		}
-
-		// This defaults to CaltechAUTHORs advanced search, can be overwritten in the environment.
-		eprintsAPI, err := url.Parse(eprintsSearchURL)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Can't parse CaltechAUTHORS URL %s, %s", eprintsSearchURL, err)
-			os.Exit(1)
-		}
-		saveWorkbook := false
-		for i, row := range sheet.Rows {
-			// Assume first row of the spreadsheet is headings
-			if i > 0 {
-				// If row is too short for append necessary cells
-				if len(row.Cells) <= rIndex {
-					for len(row.Cells) <= rIndex {
-						row.AddCell()
-					}
-				}
-				// Update the search paraters
-				searchString := xlquery.GetCell(sheet, i, qIndex)
-				eprintsAPI = xlquery.UpdateParameters(eprintsAPI, map[string]string{
-					"title":  searchString,
-					"output": "RSS2",
-				})
-				fmt.Fprintf(os.Stdout, "%s\n", eprintsAPI.String())
-				buf, err := xlquery.Request(eprintsAPI, map[string]string{})
-				if err != nil {
-					fmt.Fprintf(os.Stderr, "%s request failed, %s", eprintsAPI.String(), err)
-				} else {
-					feed, err := rss2.Parse(buf)
-					if err != nil {
-						fmt.Fprintf(os.Stderr, "Can't parse response %s, %s", eprintsAPI.String(), err)
-					} else {
-						links, err := feed.Filter(dataPath)
-						if err != nil {
-							fmt.Fprintf(os.Stderr, "filter on link error, %s", err)
-						} else if links != nil {
-							fmt.Printf("\tfound %d links\n", len(links[dataPath].([]string)))
-							s := strings.Join(links[dataPath].([]string), "\r")
-							err = xlquery.UpdateCell(sheet, i, rIndex, s, overwriteResult)
-							if err != nil {
-								fmt.Fprintf(os.Stderr, "Failed to update cell results for %s, %s", searchString, err)
-							} else {
-								saveWorkbook = true
-							}
-						}
-						links = nil
-					}
-					feed = nil
-				}
-				buf = nil
-			}
-		}
-		if saveWorkbook == true {
-			fmt.Printf("Writing results to %s\n", fname)
-			err := workbook.Save(fname)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Can't save %s, %s\n", fname, err)
-				os.Exit(1)
-			}
-			fmt.Fprintf(os.Stdout, "%s saved.", fname)
-		}
+	err := xlquery.CliRunner(xlq, func(msg string) {
+		fmt.Fprintf(os.Stdout, "%s\n", msg)
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", err)
+		os.Exit(1)
 	}
 }
