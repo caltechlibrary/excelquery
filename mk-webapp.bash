@@ -15,5 +15,5 @@ function MakeWebApp() {
 }
 
 # xlquery webapp
-MakeWebApp webapp nav.md webapp.tmpl index.html
+MakeWebApp webapp nav.md index.tmpl index.html
 

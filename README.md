@@ -10,22 +10,23 @@ setting the environment variable *EPRINTS_SEARCH_URL*.
 ## USAGE
 
 ```shell
-    xlquery [OPTIONS] WORKBOOK_NAME QUERY_COLUMN RESULT_COLUMN
+    xlquery [OPTIONS] WORKBOOK_NAME QUERY_SHEET_NAME QUERY_COLUMN
 ```
 
-The command line program *xlquery* takes the name of a xlsx file along with the column name for the query string
+The command line program *xlquery* takes the name of a xlsx file along with a sheet name (or number) and the column name for the query string. It also accepts an optional sheeting name of the results (otherwise a new sheet w
 and one for the result. By default it searches on "Sheet1". This can be changed with the "-s" command line option.
 
-The simple form where column *A* holds the query string and results will be put in column *B*
+The simple form where column *A* in *Sheet 1" holds the query string and results will be put in a new sheet called "Results" 
 
 ```shell
-    xlquery titlelist.xlsx A B
+    xlquery titlelist.xlsx "Sheet 1" A 
 ```
 
 *xlquery* will display console message describing the processing on stdout. If there are errors they will be sent to 
 stderr with catastrophic errors exiting with a value 1. If the program is successful it will exit with the value 0.
 
-+ Sheet name should correspond to the sheet you want to run through (e.g. "Sheet1")
++ The sheet name can be the textual number of the sheet or its index (the first sheet's index is zero)
++ Query column should correspond to the sheet you want to run through (e.g. "Sheet1")
 + Column names are in Excel's letter format (e.g. "A", "FX", "BBC").
 + data path is the part of the result you want to use (e.g. ".item[].link" is the RSS item link field)
 
@@ -42,11 +43,11 @@ stderr with catastrophic errors exiting with a value 1. If the program is succes
 ## Example
 
 ```shell
-    xlquery -sheet "Title List" -overwrite ./testdata/demo2.xlsx A C 
+    xlquery -sheet "Title List" -overwrite ./testdata/demo2.xlsx A
 ```
 
-This opens demo2.xlsx and uses the sheet named "Title List". It populates fresh results in column *C* based on the 
-query string in column *A*. The results are taken from the data path of ".item[].link" from the RSS2 
+This opens demo2.xlsx and uses the sheet named "Title List". It populates fresh results in in a new sheet called "Results" based on the 
+query string in column *A* of "Title List". The results are taken from the data path of ".item[].link" from the RSS2 
 response in the search request.
 
 

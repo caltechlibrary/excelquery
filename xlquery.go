@@ -19,20 +19,37 @@
 package xlquery
 
 import (
-	"fmt"
+	"encoding/base64"
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
 
 	// 3rd Party packages
+	"github.com/caltechlibrary/xlquery/rss2"
 	"github.com/tealeg/xlsx"
 )
 
 const (
 	// Version of this package
-	Version = "v0.0.1"
+	Version = `v0.0.1`
 )
+
+// XLQuery holds the settings to run the XLQuery process over a spreadsheet contacting the
+// EPrints repository search CGI script.
+type XLQuery struct {
+	EPrintsSearchURL string
+	ResultDataPath   string
+	WorkbookName     string
+	SheetName        string
+	QueryColumn      string
+	ResultColumn     string
+	SkipFirstRow     bool
+	OverwriteResult  bool
+	DataURL          string
+	ErrorList        []string
+}
 
 // ColumnNameToIndex turns a column reference e.g. 'A', 'BF' into a zero-based array position
 func ColumnNameToIndex(colName string) (int, error) {
@@ -65,7 +82,7 @@ func ColumnNameToIndex(colName string) (int, error) {
 		"Z": 26,
 	}
 	if strings.TrimSpace(colName) == "" {
-		return -1, fmt.Errorf("No column letter provided")
+		return -1, errors.New("No column letter provided")
 	}
 	sum := 0
 	letters := strings.Split(strings.ToUpper(colName), "")
@@ -74,7 +91,7 @@ func ColumnNameToIndex(colName string) (int, error) {
 			sum = sum * 26
 			sum += v
 		} else {
-			return -1, fmt.Errorf("Can't find value for %q in %q", letters[i], colName)
+			return -1, errors.New(`Can't find value for "` + letters[i] + `" in "` + colName + `"`)
 		}
 	}
 	return sum - 1, nil
@@ -93,7 +110,7 @@ func GetCell(sheet *xlsx.Sheet, row int, col int) string {
 func UpdateCell(sheet *xlsx.Sheet, row int, col int, value string, overwrite bool) error {
 	cell := sheet.Cell(row, col)
 	if overwrite == false && cell.Value != "" {
-		return fmt.Errorf("Cell(%d, %d) already has a value %s", row, col, cell.Value)
+		return errors.New(`Cell already has a value ` + cell.Value)
 	}
 	cell.Value = value
 	// Update the style to use TextWrap = true
@@ -155,3 +172,159 @@ func Request(api *url.URL, headers map[string]string) ([]byte, error) {
 
 // given an RSS2 document return all the entries matching so we can apply some sort of data path
 // e.g. .version, .channel.title, .channel.link, .item[].link, .item[].guid, .item[].title, .item[].description
+
+// CliRunner is the run method for a command line tool
+func CliRunner(xlq *XLQuery, println func(string)) error {
+	workbook, err := xlsx.OpenFile(xlq.WorkbookName)
+	if err != nil {
+		return errors.New("Can't open " + xlq.WorkbookName + ", " + err.Error())
+	}
+	if sheet, ok := workbook.Sheet[xlq.SheetName]; ok == true {
+		qIndex, err := ColumnNameToIndex(xlq.QueryColumn)
+		if err != nil {
+			return errors.New("Can't find column " + xlq.QueryColumn + ", in " + xlq.WorkbookName + "." + xlq.SheetName + ", " + err.Error())
+		}
+		rIndex, err := ColumnNameToIndex(xlq.ResultColumn)
+		if err != nil {
+			return errors.New("Can't find column " + xlq.ResultColumn + ", in " + xlq.WorkbookName + "." + xlq.SheetName + ", " + err.Error())
+		}
+
+		// This defaults to CaltechAUTHORs advanced search, can be overwritten in the environment.
+		eprintsAPI, err := url.Parse(xlq.EPrintsSearchURL)
+		if err != nil {
+			return errors.New("Can't parse CaltechAUTHORS URL " + xlq.EPrintsSearchURL + ", " + err.Error())
+		}
+		saveWorkbook := false
+		start := 0
+		if xlq.SkipFirstRow == true {
+			start = 1
+		}
+		for i, row := range sheet.Rows {
+			if i >= start {
+				// Assume first row of the spreadsheet is headings
+				// If row is too short for append necessary cells
+				if len(row.Cells) <= rIndex {
+					for len(row.Cells) <= rIndex {
+						row.AddCell()
+					}
+				}
+				// Update the search paraters
+				searchString := GetCell(sheet, i, qIndex)
+				eprintsAPI = UpdateParameters(eprintsAPI, map[string]string{
+					"title":  searchString,
+					"output": "RSS2",
+				})
+				buf, err := Request(eprintsAPI, map[string]string{})
+				if err != nil {
+					xlq.Error(eprintsAPI.String() + " request failed, " + err.Error())
+				} else {
+					feed, err := rss2.Parse(buf)
+					if err != nil {
+						xlq.Error("Can't parse response " + eprintsAPI.String() + ", " + err.Error())
+					} else {
+						links, err := feed.Filter(xlq.ResultDataPath)
+						if err != nil {
+							xlq.Error("filter on link error, " + err.Error())
+						} else if links != nil {
+							s := strings.Join(links[xlq.ResultDataPath].([]string), "\n")
+							if s != "" {
+								println(`Searching for "` + searchString + `", found: ` + "\n" + s)
+								err = UpdateCell(sheet, i, rIndex, s, xlq.OverwriteResult)
+								if err != nil {
+									xlq.Error("Failed to update cell results for " + searchString + ", " + err.Error())
+								} else {
+									saveWorkbook = true
+								}
+							} else {
+								println(`No results for "` + searchString + `"`)
+							}
+						}
+						links = nil
+					}
+					feed = nil
+				}
+				buf = nil
+			}
+		}
+		if saveWorkbook == true {
+			err := workbook.Save(xlq.WorkbookName)
+			if err != nil {
+				xlq.Error("Can't save " + xlq.WorkbookName + ", " + err.Error())
+				return errors.New(xlq.Errors())
+			}
+			println("Wrote " + xlq.WorkbookName)
+		}
+	}
+	if len(xlq.ErrorList) > 0 {
+		return errors.New(xlq.Errors())
+	}
+	return nil
+}
+
+//
+// Web code, the following functions are for using with GopherJS
+//
+
+// Init initializes a XLQuery object with reasonable values.
+func (xlq *XLQuery) Init() {
+	xlq.EPrintsSearchURL = `http://authors.library.caltech.edu/cgi/search/advanced/`
+	xlq.ResultDataPath = `.item[].link`
+	xlq.WorkbookName = `Untitled.xlsx`
+	xlq.SheetName = `Sheet1`
+	xlq.QueryColumn = ``
+	xlq.ResultColumn = ``
+	xlq.SkipFirstRow = true
+	xlq.OverwriteResult = false
+	xlq.DataURL = ``
+	xlq.ErrorList = []string{}
+}
+
+func (xlq *XLQuery) Error(e interface{}) {
+	switch e.(type) {
+	case error:
+		xlq.ErrorList = append(xlq.ErrorList, e.(error).Error())
+	case string:
+		xlq.ErrorList = append(xlq.ErrorList, e.(string))
+	}
+}
+
+func (xlq *XLQuery) Errors() string {
+	return strings.Join(xlq.ErrorList, "\n")
+}
+
+// dataURLPrefix gets the data URL's previs up through and including ';base64,'
+func dataURLPrefix(src string) string {
+	// Notes: "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,"
+	var (
+		pre = `data:`
+		b64 = `;base64,`
+	)
+	if strings.HasPrefix(src, pre) && strings.Contains(src, b64) {
+		i := strings.Index(src, b64)
+		if i > -1 {
+			return src[9 : i+8]
+		}
+	}
+	// An emptry string means no prefix found
+	return ""
+}
+
+// dataURLToByteArray converts a data URL to byte array or returns an error
+func dataURLToByteArray(pre, src string) ([]byte, error) {
+	if strings.HasPrefix(src, pre) {
+		return base64.StdEncoding.DecodeString(strings.TrimPrefix(src, pre))
+	}
+	return []byte(src), errors.New("Not a data URL " + pre)
+}
+
+// byteArrayToDataURL takes a prefix and byte array truning a string formatted as a data URL
+func byteArrayToDataURL(pre string, buf []byte) string {
+	// Notes: "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,"
+	return pre + base64.StdEncoding.EncodeToString(buf)
+}
+
+// WebRunner takes simple JS types as parameters and returns a dataURL string
+func (xlq *XLQuery) WebRunner(dataURL string) string {
+	//FIXME: need a real implementation
+	return `data:text/plain;base64,` + base64.StdEncoding.EncodeToString([]byte("Hello World!!!"))
+}

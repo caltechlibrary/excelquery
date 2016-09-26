@@ -36,8 +36,10 @@ save: fmt
 clean:
 	if [ -d bin ]; then /bin/rm -fR bin; fi
 	if [ -d dist ]; then /bin/rm -fR dist; fi
-	if [ -f $(PROG)-binary-release.zip ]; then /bin/rm -f $(PROG)-binary-release.zip; fi
 	if [ -f webapp/webapp.js ]; then /bin/rm -f webapp/webapp.js; fi
+	if [ -f webapp/webapp.js.map ]; then /bin/rm -f webapp/webapp.js.map; fi
+	if [ -f webapp/index.html ]; then /bin/rm -f webapp/index.html; fi
+	if [ -f $(PROG)-binary-release.zip ]; then /bin/rm -f $(PROG)-binary-release.zip; fi
 
 install:
 	env GOBIN=$(HOME)/bin go install cmds/$(PROG)/$(PROG).go
