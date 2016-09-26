@@ -32,22 +32,23 @@ setting the environment variable <em>EPRINTS_SEARCH_URL</em>.</p>
 
 <h2>USAGE</h2>
 
-<pre><code class="language-shell">    xlquery [OPTIONS] WORKBOOK_NAME QUERY_COLUMN RESULT_COLUMN
+<pre><code class="language-shell">    xlquery [OPTIONS] WORKBOOK_NAME QUERY_SHEET_NAME QUERY_COLUMN
 </code></pre>
 
-<p>The command line program <em>xlquery</em> takes the name of a xlsx file along with the column name for the query string
+<p>The command line program <em>xlquery</em> takes the name of a xlsx file along with a sheet name (or number) and the column name for the query string. It also accepts an optional sheeting name of the results (otherwise a new sheet w
 and one for the result. By default it searches on &ldquo;Sheet1&rdquo;. This can be changed with the &ldquo;-s&rdquo; command line option.</p>
 
-<p>The simple form where column <em>A</em> holds the query string and results will be put in column <em>B</em></p>
+<p>The simple form where column <em>A</em> in *Sheet 1&rdquo; holds the query string and results will be put in a new sheet called &ldquo;Results&rdquo;</p>
 
-<pre><code class="language-shell">    xlquery titlelist.xlsx A B
+<pre><code class="language-shell">    xlquery titlelist.xlsx &quot;Sheet 1&quot; A 
 </code></pre>
 
 <p><em>xlquery</em> will display console message describing the processing on stdout. If there are errors they will be sent to
 stderr with catastrophic errors exiting with a value 1. If the program is successful it will exit with the value 0.</p>
 
 <ul>
-<li>Sheet name should correspond to the sheet you want to run through (e.g. &ldquo;Sheet1&rdquo;)</li>
+<li>The sheet name can be the textual number of the sheet or its index (the first sheet&rsquo;s index is zero)</li>
+<li>Query column should correspond to the sheet you want to run through (e.g. &ldquo;Sheet1&rdquo;)</li>
 <li>Column names are in Excel&rsquo;s letter format (e.g. &ldquo;A&rdquo;, &ldquo;FX&rdquo;, &ldquo;BBC&rdquo;).</li>
 <li>data path is the part of the result you want to use (e.g. &ldquo;.item[].link&rdquo; is the RSS item link field)</li>
 </ul>
@@ -64,11 +65,11 @@ stderr with catastrophic errors exiting with a value 1. If the program is succes
 
 <h2>Example</h2>
 
-<pre><code class="language-shell">    xlquery -sheet &quot;Title List&quot; -overwrite ./testdata/demo2.xlsx A C 
+<pre><code class="language-shell">    xlquery -sheet &quot;Title List&quot; -overwrite ./testdata/demo2.xlsx A
 </code></pre>
 
-<p>This opens demo2.xlsx and uses the sheet named &ldquo;Title List&rdquo;. It populates fresh results in column <em>C</em> based on the
-query string in column <em>A</em>. The results are taken from the data path of &ldquo;.item[].link&rdquo; from the RSS2
+<p>This opens demo2.xlsx and uses the sheet named &ldquo;Title List&rdquo;. It populates fresh results in in a new sheet called &ldquo;Results&rdquo; based on the
+query string in column <em>A</em> of &ldquo;Title List&rdquo;. The results are taken from the data path of &ldquo;.item[].link&rdquo; from the RSS2
 response in the search request.</p>
 
 </section>
