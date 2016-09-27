@@ -49,7 +49,7 @@ var (
 		"Title":       ".item[].title",
 		"Description": ".item[].description",
 		"Link":        ".item[].link",
-		"GUID":        ".item.[].guid",
+		"GUID":        ".item[].guid",
 	}
 )
 
@@ -187,6 +187,26 @@ func Request(api *url.URL, headers map[string]string) ([]byte, error) {
 	return body, nil
 }
 
+//FIXME: append a row to the results sheet
+// err = appendResult(resultSheet, i, col, results)
+func appendResult(resultSheet *xlsx.Sheet, queryRow int, searchString string, results map[string]interface{}) error {
+	var (
+		row int
+	)
+	//FIXME: what is Row value?  what is column
+	return errors.New("DEBUG appendResult() not really implemented correctly")
+
+	// Write new Row (Iterate through columns using UpdateCell) for results sheet
+	for col, key := range resultLabels {
+		//FIXME: Is "row" the row we want to write to? What if it doesn't exist?
+		err := UpdateCell(resultSheet, row, col, results[key].(string), true)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // given an RSS2 document return all the entries matching so we can apply some sort of data path
 // e.g. .version, .channel.title, .channel.link, .item[].link, .item[].guid, .item[].title, .item[].description
 
@@ -214,6 +234,7 @@ func CliRunner(xlq *XLQuery, println func(string)) error {
 
 	// Use an existing sheet or create a new one to save results in.
 	if xlq.OverwriteResult == false {
+		// FIXME: if "Result1" isn't available increment next results name (e.g. "Result2")
 		resultSheet, err = workbook.AddSheet(xlq.ResultSheetName)
 		if err != nil {
 			return errors.New("Can't create " + xlq.WorkbookName + "." + xlq.SheetName + ", " + err.Error())
@@ -221,7 +242,10 @@ func CliRunner(xlq *XLQuery, println func(string)) error {
 	} else {
 		resultSheet, ok = workbook.Sheet[xlq.ResultSheetName]
 		if ok == false {
-			return errors.New("Can't find " + xlq.WorkbookName + "." + xlq.SheetName)
+			resultSheet, err = workbook.AddSheet(xlq.ResultSheetName)
+			if err != nil {
+				return errors.New("Can't create " + xlq.WorkbookName + "." + xlq.SheetName + ", " + err.Error())
+			}
 		}
 	}
 
@@ -259,15 +283,10 @@ func CliRunner(xlq *XLQuery, println func(string)) error {
 						xlq.Error("filter on link error, " + err.Error())
 						saveWorkbook = false
 					} else {
-						// Write new Row (Iterate through columns using UpdateCell) for results sheet
-						for col, key := range resultLabels {
-							//FIXME: Is "i" the row we want to write to?
-							err = UpdateCell(resultSheet, i, col, results[key].(string), true)
-							if err != nil {
-								xlq.Error("Can't update " + xlq.WorkbookName + "." + xlq.SheetName + ", " + err.Error())
-							} else {
-								saveWorkbook = false
-							}
+						err = appendResult(resultSheet, i, searchString, results)
+						if err != nil {
+							xlq.Error("Can't update " + xlq.WorkbookName + "." + xlq.ResultSheetName + ", " + err.Error())
+							saveWorkbook = false
 						}
 					}
 					results = nil

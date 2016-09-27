@@ -99,8 +99,8 @@ func init() {
 	flag.BoolVar(&showLicense, "license", false, "show license information")
 
 	// App specific flags
-	flag.BoolVar(&overwriteResult, "o", overwriteResult, "overwrite the results column")
-	flag.BoolVar(&overwriteResult, "overwrite", overwriteResult, "overwrite the results column")
+	flag.BoolVar(&overwriteResult, "o", overwriteResult, "overwrite the results sheet")
+	flag.BoolVar(&overwriteResult, "overwrite", overwriteResult, "overwrite the results sheet")
 	flag.BoolVar(&skipFirstRow, "S", skipFirstRow, "set boolean for skipping first row of sheet (default true)")
 	flag.BoolVar(&skipFirstRow, "Skip", skipFirstRow, "set boolean for skipping first row of spreadsheet (default true)")
 	flag.StringVar(&sheetName, "s", sheetName, "set the sheet name, e.g. \"Sheet1\"")
@@ -140,7 +140,7 @@ func main() {
 		resultSheetName = args[3]
 	}
 
-	fmt.Printf("Workbook name: %s, queryColumn: %s, resultSheet: %s\n", fname, queryColumn, resultSheetName)
+	fmt.Printf("Workbook name: %s, query sheet %s, query column: %s, result sheet: %s\n", fname, sheetName, queryColumn, resultSheetName)
 	xlq := new(xlquery.XLQuery)
 	xlq.Init()
 	xlq.EPrintsSearchURL = eprintsSearchURL
