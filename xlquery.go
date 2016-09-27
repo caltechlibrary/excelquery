@@ -26,25 +26,42 @@ import (
 	"net/url"
 	"strings"
 
-	// 3rd Party packages
+	// Caltech Library packages
 	"github.com/caltechlibrary/xlquery/rss2"
+
+	// 3rd Party packages
 	"github.com/tealeg/xlsx"
 )
 
 const (
 	// Version of this package
-	Version = `v0.0.1`
+	Version = `v0.0.2`
+)
+
+var (
+	resultLabels = []string{
+		"Title",
+		"Description",
+		"Link",
+		"GUID",
+	}
+	resultMap = map[string]string{
+		"Title":       ".item[].title",
+		"Description": ".item[].description",
+		"Link":        ".item[].link",
+		"GUID":        ".item.[].guid",
+	}
 )
 
 // XLQuery holds the settings to run the XLQuery process over a spreadsheet contacting the
 // EPrints repository search CGI script.
 type XLQuery struct {
 	EPrintsSearchURL string
-	ResultDataPath   string
+	ResultDataPaths  []string
 	WorkbookName     string
 	SheetName        string
 	QueryColumn      string
-	ResultColumn     string
+	ResultSheetName  string
 	SkipFirstRow     bool
 	OverwriteResult  bool
 	DataURL          string
@@ -175,85 +192,98 @@ func Request(api *url.URL, headers map[string]string) ([]byte, error) {
 
 // CliRunner is the run method for a command line tool
 func CliRunner(xlq *XLQuery, println func(string)) error {
+	var (
+		resultSheet  *xlsx.Sheet
+		saveWorkbook bool
+		start        int
+		err          error
+		ok           bool
+	)
 	workbook, err := xlsx.OpenFile(xlq.WorkbookName)
 	if err != nil {
 		return errors.New("Can't open " + xlq.WorkbookName + ", " + err.Error())
 	}
-	if sheet, ok := workbook.Sheet[xlq.SheetName]; ok == true {
-		qIndex, err := ColumnNameToIndex(xlq.QueryColumn)
-		if err != nil {
-			return errors.New("Can't find column " + xlq.QueryColumn + ", in " + xlq.WorkbookName + "." + xlq.SheetName + ", " + err.Error())
-		}
-		rIndex, err := ColumnNameToIndex(xlq.ResultColumn)
-		if err != nil {
-			return errors.New("Can't find column " + xlq.ResultColumn + ", in " + xlq.WorkbookName + "." + xlq.SheetName + ", " + err.Error())
-		}
+	sheet, ok := workbook.Sheet[xlq.SheetName]
+	if ok == false {
+		return errors.New("Can't read " + xlq.WorkbookName + "." + xlq.SheetName + ", " + err.Error())
+	}
+	qIndex, err := ColumnNameToIndex(xlq.QueryColumn)
+	if err != nil {
+		return errors.New("Can't find column " + xlq.QueryColumn + ", in " + xlq.WorkbookName + "." + xlq.SheetName + ", " + err.Error())
+	}
 
-		// This defaults to CaltechAUTHORs advanced search, can be overwritten in the environment.
-		eprintsAPI, err := url.Parse(xlq.EPrintsSearchURL)
+	// Use an existing sheet or create a new one to save results in.
+	if xlq.OverwriteResult == false {
+		resultSheet, err = workbook.AddSheet(xlq.ResultSheetName)
 		if err != nil {
-			return errors.New("Can't parse CaltechAUTHORS URL " + xlq.EPrintsSearchURL + ", " + err.Error())
+			return errors.New("Can't create " + xlq.WorkbookName + "." + xlq.SheetName + ", " + err.Error())
 		}
-		saveWorkbook := false
-		start := 0
-		if xlq.SkipFirstRow == true {
-			start = 1
+	} else {
+		resultSheet, ok = workbook.Sheet[xlq.ResultSheetName]
+		if ok == false {
+			return errors.New("Can't find " + xlq.WorkbookName + "." + xlq.SheetName)
 		}
-		for i, row := range sheet.Rows {
-			if i >= start {
-				// Assume first row of the spreadsheet is headings
-				// If row is too short for append necessary cells
-				if len(row.Cells) <= rIndex {
-					for len(row.Cells) <= rIndex {
-						row.AddCell()
-					}
-				}
-				// Update the search paraters
-				searchString := GetCell(sheet, i, qIndex)
-				eprintsAPI = UpdateParameters(eprintsAPI, map[string]string{
-					"title":  searchString,
-					"output": "RSS2",
-				})
-				buf, err := Request(eprintsAPI, map[string]string{})
+	}
+
+	// This defaults to CaltechAUTHORs advanced search, can be overwritten in the environment.
+	eprintsAPI, err := url.Parse(xlq.EPrintsSearchURL)
+	if err != nil {
+		return errors.New("Can't parse CaltechAUTHORS URL " + xlq.EPrintsSearchURL + ", " + err.Error())
+	}
+	if xlq.SkipFirstRow == true {
+		start = 1
+	}
+	for i := range sheet.Rows {
+		if i >= start {
+			// Update the search paraters
+			searchString := GetCell(sheet, i, qIndex)
+			eprintsAPI = UpdateParameters(eprintsAPI, map[string]string{
+				"title":  searchString,
+				"output": "RSS2",
+			})
+			buf, err := Request(eprintsAPI, map[string]string{})
+			if err != nil {
+				xlq.Error(eprintsAPI.String() + " request failed, " + err.Error())
+			} else {
+				feed, err := rss2.Parse(buf)
 				if err != nil {
-					xlq.Error(eprintsAPI.String() + " request failed, " + err.Error())
+					xlq.Error("Can't parse response " + eprintsAPI.String() + ", " + err.Error())
 				} else {
-					feed, err := rss2.Parse(buf)
+					results, err := feed.Filter([]string{
+						resultMap["Title"],
+						resultMap["Description"],
+						resultMap["Link"],
+						resultMap["GUID"],
+					})
 					if err != nil {
-						xlq.Error("Can't parse response " + eprintsAPI.String() + ", " + err.Error())
+						xlq.Error("filter on link error, " + err.Error())
+						saveWorkbook = false
 					} else {
-						links, err := feed.Filter(xlq.ResultDataPath)
-						if err != nil {
-							xlq.Error("filter on link error, " + err.Error())
-						} else if links != nil {
-							s := strings.Join(links[xlq.ResultDataPath].([]string), "\n")
-							if s != "" {
-								println(`Searching for "` + searchString + `", found: ` + "\n" + s)
-								err = UpdateCell(sheet, i, rIndex, s, xlq.OverwriteResult)
-								if err != nil {
-									xlq.Error("Failed to update cell results for " + searchString + ", " + err.Error())
-								} else {
-									saveWorkbook = true
-								}
+						// Write new Row (Iterate through columns using UpdateCell) for results sheet
+						for col, key := range resultLabels {
+							//FIXME: Is "i" the row we want to write to?
+							err = UpdateCell(resultSheet, i, col, results[key].(string), true)
+							if err != nil {
+								xlq.Error("Can't update " + xlq.WorkbookName + "." + xlq.SheetName + ", " + err.Error())
 							} else {
-								println(`No results for "` + searchString + `"`)
+								saveWorkbook = false
 							}
 						}
-						links = nil
 					}
-					feed = nil
+					results = nil
 				}
-				buf = nil
+				feed = nil
 			}
+			buf = nil
 		}
-		if saveWorkbook == true {
-			err := workbook.Save(xlq.WorkbookName)
-			if err != nil {
-				xlq.Error("Can't save " + xlq.WorkbookName + ", " + err.Error())
-				return errors.New(xlq.Errors())
-			}
-			println("Wrote " + xlq.WorkbookName)
+	}
+	if saveWorkbook == true {
+		err := workbook.Save(xlq.WorkbookName)
+		if err != nil {
+			xlq.Error("Can't save " + xlq.WorkbookName + ", " + err.Error())
+			return errors.New(xlq.Errors())
 		}
+		println("Wrote " + xlq.WorkbookName)
 	}
 	if len(xlq.ErrorList) > 0 {
 		return errors.New(xlq.Errors())
@@ -268,11 +298,16 @@ func CliRunner(xlq *XLQuery, println func(string)) error {
 // Init initializes a XLQuery object with reasonable values.
 func (xlq *XLQuery) Init() {
 	xlq.EPrintsSearchURL = `http://authors.library.caltech.edu/cgi/search/advanced/`
-	xlq.ResultDataPath = `.item[].link`
+	xlq.ResultDataPaths = []string{
+		resultMap["Title"],
+		resultMap["Description"],
+		resultMap["Link"],
+		resultMap["GUID"],
+	}
 	xlq.WorkbookName = `Untitled.xlsx`
 	xlq.SheetName = `Sheet1`
 	xlq.QueryColumn = ``
-	xlq.ResultColumn = ``
+	xlq.ResultSheetName = `Result1`
 	xlq.SkipFirstRow = true
 	xlq.OverwriteResult = false
 	xlq.DataURL = ``

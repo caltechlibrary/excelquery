@@ -77,7 +77,7 @@ func TestRSS2(t *testing.T) {
 		t.Error(err)
 		t.FailNow()
 	}
-	results, err := r.Filter(".item[].title")
+	results, err := r.Filter([]string{".item[].title"})
 	if err != nil {
 		t.Error(err)
 		t.FailNow()
@@ -86,7 +86,7 @@ func TestRSS2(t *testing.T) {
 		t.Errorf("Expected 6 .item[].title, got %s", strings.Join(results[".item[].title"].([]string), "\t"))
 		t.FailNow()
 	}
-	results, err = r.Filter(".item[].link")
+	results, err = r.Filter([]string{".item[].link"})
 	if err != nil {
 		t.Errorf("Expected 6 .item[].link, got %+v", strings.Join(results[".item[].title"].([]string), "\t"))
 		t.FailNow()

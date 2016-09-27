@@ -36,7 +36,7 @@ func ExampleXLQuery() {
 	xlq.WorkbookName = path.Join("testdata", "test-1.xlsx")
 	xlq.SheetName = "Sheet1"
 	xlq.QueryColumn = "A"
-	xlq.ResultColumn = "B"
+	xlq.ResultSheetName = "Result1"
 	xlq.OverwriteResult = true
 	xlq.SkipFirstRow = true
 	// At this point you can run xlquery with the CliRunner() or WebRunner() depending
@@ -52,7 +52,7 @@ func ExampleCliRunner() {
 	xlq.WorkbookName = path.Join("testdata", "test-1.xlsx")
 	xlq.SheetName = "Sheet1"
 	xlq.QueryColumn = "A"
-	xlq.ResultColumn = "B"
+	xlq.ResultSheetName = "Result1"
 	xlq.OverwriteResult = true
 	xlq.SkipFirstRow = true
 	err := xlquery.CliRunner(xlq, func(msg string) {
