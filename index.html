@@ -25,20 +25,21 @@
 <h1>xlquery</h1>
 
 <p>xlquery is an experimental utility designed to update workbook files (.xlsx) taking a column as search query strings and
-putting the results in another column of the same spreadsheet. This proof of concept works with EPrints repository
+putting the results in another worksheet of the same workbook. This proof of concept works with EPrints repository
 software relying on advanced search and results returned in RSS2 format. By default the search if performanced against
 <a href="https://authors.library.caltech.edu">CaltechAUTHORS</a> repository. You can point at a different EPrints repository by
 setting the environment variable <em>EPRINTS_SEARCH_URL</em>.</p>
 
 <h2>USAGE</h2>
 
-<pre><code class="language-shell">    xlquery [OPTIONS] WORKBOOK_NAME QUERY_SHEET_NAME QUERY_COLUMN
+<pre><code class="language-shell">    xlquery [OPTIONS] WORKBOOK_NAME QUERY_SHEET_NAME QUERY_COLUMN [RESULT_SHEET_NAME]
 </code></pre>
 
-<p>The command line program <em>xlquery</em> takes the name of a xlsx file along with a sheet name (or number) and the column name for the query string. It also accepts an optional sheeting name of the results (otherwise a new sheet w
-and one for the result. By default it searches on &ldquo;Sheet1&rdquo;. This can be changed with the &ldquo;-s&rdquo; command line option.</p>
+<p>The command line program <em>xlquery</em> takes the name of a xlsx file along with a sheet name (or number) and the column name
+for the query string. A sheet name can optionally be supplied for results.  By default it searches on &ldquo;Sheet1&rdquo; and by
+default a new sheet is created called &ldquo;Result1&rdquo;. This can be changed with the &ldquo;-s&rdquo; and &ldquo;-r&rdquo; command line options.</p>
 
-<p>The simple form where column <em>A</em> in *Sheet 1&rdquo; holds the query string and results will be put in a new sheet called &ldquo;Results&rdquo;</p>
+<p>The simple form where column <em>A</em> in *Sheet 1&rdquo; holds the query string and results will be put in a new sheet called &ldquo;Result1&rdquo;</p>
 
 <pre><code class="language-shell">    xlquery titlelist.xlsx &quot;Sheet 1&quot; A 
 </code></pre>
@@ -50,18 +51,19 @@ stderr with catastrophic errors exiting with a value 1. If the program is succes
 <li>The sheet name can be the textual number of the sheet or its index (the first sheet&rsquo;s index is zero)</li>
 <li>Query column should correspond to the sheet you want to run through (e.g. &ldquo;Sheet1&rdquo;)</li>
 <li>Column names are in Excel&rsquo;s letter format (e.g. &ldquo;A&rdquo;, &ldquo;FX&rdquo;, &ldquo;BBC&rdquo;).</li>
-<li>data path is the part of the result you want to use (e.g. &ldquo;.item[].link&rdquo; is the RSS item link field)</li>
 </ul>
 
 <h2>OPTIONS</h2>
 
-<pre><code>-d, -datapath   set the data path to return for results, e.g. &quot;.item[].link&quot;
--h, -help   show help information
--l, -license    show license information
--o, -overwrite  overwrite the results column
--s, -sheet  set the sheet name, e.g. &quot;Sheet1&quot;
--v, -version    show version information
-</code></pre>
+<ul>
+<li>-S, -Skip   set boolean for skipping first row of spreadsheet (default true)</li>
+<li>-h, -help   show help information</li>
+<li>-l, -license    show license information</li>
+<li>-o, -overwrite  overwrite the results sheet</li>
+<li>-r, -result-sheet   set the result sheet name, e.g. &ldquo;Result2&rdquo;</li>
+<li>-s, -sheet  set the sheet name, e.g. &ldquo;Sheet1&rdquo;</li>
+<li>-v, -version    show version information</li>
+</ul>
 
 <h2>Example</h2>
 

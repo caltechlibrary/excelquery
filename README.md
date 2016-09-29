@@ -15,9 +15,9 @@ setting the environment variable *EPRINTS_SEARCH_URL*.
 
 The command line program *xlquery* takes the name of a xlsx file along with a sheet name (or number) and the column name 
 for the query string. A sheet name can optionally be supplied for results.  By default it searches on "Sheet1" and by 
-default a new sheet is created called "Result1". This can be changed with the "-s" and "-r" command line options.
+default a new sheet is created called "Result". This can be changed with the "-s" and "-r" command line options.
 
-The simple form where column *A* in *Sheet 1" holds the query string and results will be put in a new sheet called "Result1" 
+The simple form where column *A* in *Sheet 1" holds the query string and results will be put in a new sheet called "Result" 
 
 ```shell
     xlquery titlelist.xlsx "Sheet 1" A 
@@ -32,13 +32,12 @@ stderr with catastrophic errors exiting with a value 1. If the program is succes
 
 ## OPTIONS
 
--S, -Skip   set boolean for skipping first row of spreadsheet (default true)
--h, -help   show help information
--l, -license    show license information
--o, -overwrite  overwrite the results sheet
--r, -result-sheet   set the result sheet name, e.g. "Result2"
--s, -sheet  set the sheet name, e.g. "Sheet1"
--v, -version    show version information
++ -h, -help   show help information
++ -l, -license    show license information
++ -v, -version    show version information
+
++ -o, -overwrite  overwrite the results sheet
++ -s, -skip   set boolean for skipping first row of spreadsheet (default true)
 
 
 ## Example

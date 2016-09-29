@@ -35,7 +35,7 @@ var (
 
 	eprintsSearchURL = "http://authors.library.caltech.edu/cgi/search/advanced/"
 	sheetName        = "Sheet1"
-	resultSheetName  = "Result1"
+	resultSheetName  = "Result"
 	overwriteResult  = false
 	skipFirstRow     = true
 )
@@ -61,16 +61,18 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 func usage(fp *os.File, appName string) {
 	fmt.Fprintf(fp, `
- USAGE: %s [OPTION] WORKBOOK_NAME QUERY_COLUMN RESULT_COLUMN
+ USAGE: %s [OPTION] WORKBOOK_NAME QUERY_SHEET_NAME QUERY_COLUMN [RESULT_SHEET_NAME]
 
  Populate a workbook (e.g. ".xlsx" file) by using a query column's value as a query string
  updating the result column's value (by default it does not overwrite existing data).
 
  + The default sheet name to use in a workbook is "Sheet1"
- + The default datapath ".item[].link" which represents an RSS item's link field
  + Column names are in letter format (e.g. "A" is column 1, "B" column 2, etc.)
  + The environment varaible EPRINTS_SEARCH_URL can overwrite the default
    CaltechAUTHORS search URL.
+ + The default results sheet name is "Result", 
+ 	+ You can specify a different name by including it as the last parameter on the command line
+ 	+ the sheet name can be overwritten with an option otherwise it will throw an error if the results sheet exists
 
  OPTIONS
 
@@ -101,12 +103,8 @@ func init() {
 	// App specific flags
 	flag.BoolVar(&overwriteResult, "o", overwriteResult, "overwrite the results sheet")
 	flag.BoolVar(&overwriteResult, "overwrite", overwriteResult, "overwrite the results sheet")
-	flag.BoolVar(&skipFirstRow, "S", skipFirstRow, "set boolean for skipping first row of sheet (default true)")
-	flag.BoolVar(&skipFirstRow, "Skip", skipFirstRow, "set boolean for skipping first row of spreadsheet (default true)")
-	flag.StringVar(&sheetName, "s", sheetName, "set the sheet name, e.g. \"Sheet1\"")
-	flag.StringVar(&sheetName, "sheet", sheetName, "set the sheet name, e.g. \"Sheet1\"")
-	flag.StringVar(&sheetName, "r", resultSheetName, "set the result sheet name, e.g. \"Result1\"")
-	flag.StringVar(&sheetName, "result-sheet", resultSheetName, "set the result sheet name, e.g. \"Result1\"")
+	flag.BoolVar(&skipFirstRow, "s", skipFirstRow, "set boolean for skipping first row of sheet (default true)")
+	flag.BoolVar(&skipFirstRow, "skip", skipFirstRow, "set boolean for skipping first row of spreadsheet (default true)")
 
 	// Set from environment
 	if val := os.Getenv("EPRINTS_SEARCH_URL"); val != "" {
@@ -135,6 +133,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "USAGE: %s XLXS_FILENAME SHEET_NAME QUERY_COLUMN [RESULT_SHEET_NAME]\n", appname)
 		os.Exit(1)
 	}
+	resultSheetName = "Result"
 	fname, sheetName, queryColumn := args[0], args[1], args[2]
 	if len(args) >= 4 {
 		resultSheetName = args[3]
