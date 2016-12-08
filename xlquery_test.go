@@ -23,9 +23,11 @@ import (
 	"path"
 	"testing"
 
-	// 3rd Party packages
+	// Caltech packages
 	"github.com/caltechlibrary/xlquery"
 	"github.com/caltechlibrary/xlquery/rss2"
+
+	// 3rd Party packages
 	"github.com/tealeg/xlsx"
 )
 
@@ -105,9 +107,9 @@ func TestSheetHandling(t *testing.T) {
 	}
 	row := sheet.AddRow()
 	A := row.AddCell()
-	B := row.AddCell()
 	A.Value = "Query"
-	B.Value = "Results"
+	B := row.AddCell()
+	B.Value = "Result"
 
 	queryTerms := map[string]string{
 		"flood characteristics of alluvial": "Flood Characteristics of Alluvial Streams Important to Pipeline Crossings.",
@@ -140,21 +142,21 @@ func TestSheetHandling(t *testing.T) {
 			r := sheet.Cell(j, 2)
 			qTest := xlquery.GetCell(sheet, j, 0)
 			if q.Value != qTest {
-				t.Errorf("GetCell(sheet, %d, 0) expected %s, got %s", j, q.Value, qTest)
+				t.Errorf("GetCell(sheet, %d, 0) expected %q, got %q", j, q.Value, qTest)
 			}
 			if r.Value != "" {
 				err := xlquery.UpdateCell(sheet, j, 2, "This is a test", false)
 				if err != nil {
-					t.Errorf("Expected an err on update to cell %d,2", j)
+					t.Errorf("Expected an err on update to cell %d:2", j)
 				}
 			}
 			err := xlquery.UpdateCell(sheet, j, 2, "This is a test 2", true)
 			if err != nil {
-				t.Errorf("Expected err to be nil on update to cell %d,2, %s", j, err)
+				t.Errorf("Expected err to be nil on update to cell %d:2, %q", j, err)
 			}
 			r2 := sheet.Cell(j, 2)
 			if r2.Value != "This is a test 2" {
-				t.Errorf("Expected %q, got %s", "This is a test 2", r2.Value)
+				t.Errorf("Expected %q, got %q", "This is a test 2", r2.Value)
 			}
 		}
 	}
@@ -185,7 +187,7 @@ func TestQuerySupport(t *testing.T) {
 		t.Errorf("Failed to parse response, buf[0:24] %q, err %q", buf[0:24], err)
 		t.FailNow()
 	}
-	_, err = r.Filter(".item[].title")
+	_, err = r.Filter([]string{".item[].title"})
 	if err != nil {
 		t.Errorf("Failed to filter for titles, %s", err)
 		t.FailNow()

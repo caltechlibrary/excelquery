@@ -172,31 +172,38 @@ func (r *RSS2) items(dataPath string) (map[string]interface{}, error) {
 	return results, nil
 }
 
-// Filter given an RSS2 document return all the entries matching so we can apply some sort of data path
-// e.g. .version, .channel.title, .channel.link, .item[].link, .item[].guid, .item[].title, .item[].description
-func (r *RSS2) Filter(dataPath string) (map[string]interface{}, error) {
+// Filter given an RSS2 document return all the entries matching so we
+// can apply return each of the data paths requested.
+// e.g. .version, .channel.title, .channel.link, .item[].link,
+// .item[].guid, .item[].title, .item[].description
+func (r *RSS2) Filter(dataPaths []string) (map[string]interface{}, error) {
 	var (
 		err  error
 		data map[string]interface{}
 	)
 	result := make(map[string]interface{})
-	switch {
-	case strings.Compare(dataPath, ".version") == 0:
-		result["version"] = r.Version
-	case strings.HasPrefix(dataPath, ".channel"):
-		data, err = r.channel(dataPath)
-		// Merge data into results keyed' by path
-		for _, val := range data {
-			result[dataPath] = val
+	for _, dataPath := range dataPaths {
+		switch {
+		case strings.Compare(dataPath, ".version") == 0:
+			result["version"] = r.Version
+		case strings.HasPrefix(dataPath, ".channel"):
+			data, err = r.channel(dataPath)
+			// Merge data into results keyed' by path
+			for _, val := range data {
+				result[dataPath] = val
+			}
+		case strings.HasPrefix(dataPath, ".item[]"):
+			data, err = r.items(dataPath)
+			// Merge data into results keyed' by path
+			for _, val := range data {
+				result[dataPath] = val
+			}
+		default:
+			return nil, fmt.Errorf("path %q not found", dataPath)
 		}
-	case strings.HasPrefix(dataPath, ".item[]"):
-		data, err = r.items(dataPath)
-		// Merge data into results keyed' by path
-		for _, val := range data {
-			result[dataPath] = val
-		}
-	default:
-		return nil, fmt.Errorf("path %q not found", dataPath)
+	}
+	if result == nil {
+		return nil, fmt.Errorf("No data paths found")
 	}
 	return result, err
 }

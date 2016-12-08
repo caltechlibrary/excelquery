@@ -35,8 +35,7 @@ var (
 
 	eprintsSearchURL = "http://authors.library.caltech.edu/cgi/search/advanced/"
 	sheetName        = "Sheet1"
-	dataPath         = ".item[].link"
-	overwriteResult  = false
+	resultSheetName  = "Result"
 	skipFirstRow     = true
 )
 
@@ -61,16 +60,18 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 func usage(fp *os.File, appName string) {
 	fmt.Fprintf(fp, `
- USAGE: %s [OPTION] WORKBOOK_NAME QUERY_COLUMN RESULT_COLUMN
+ USAGE: %s [OPTION] WORKBOOK_NAME QUERY_SHEET_NAME QUERY_COLUMN [RESULT_SHEET_NAME]
 
- Populate a workbook (e.g. ".xlsx" file) by using a query column's value as a query string
- updating the result column's value (by default it does not overwrite existing data).
+ Populate a workbook (e.g. ".xlsx" file) sheet by using a query column's value as a query string
+ updating the result sheet's content overwriting existing data if result sheet name exists.
 
  + The default sheet name to use in a workbook is "Sheet1"
- + The default datapath ".item[].link" which represents an RSS item's link field
  + Column names are in letter format (e.g. "A" is column 1, "B" column 2, etc.)
  + The environment varaible EPRINTS_SEARCH_URL can overwrite the default
    CaltechAUTHORS search URL.
+ + The default results sheet name is "Result", 
+ 	+ You can specify a different name by including it as the last parameter on the command line
+ 	+ the sheet name can be overwritten with an option otherwise it will throw an error if the results sheet exists
 
  OPTIONS
 
@@ -99,14 +100,8 @@ func init() {
 	flag.BoolVar(&showLicense, "license", false, "show license information")
 
 	// App specific flags
-	flag.BoolVar(&overwriteResult, "o", overwriteResult, "overwrite the results column")
-	flag.BoolVar(&overwriteResult, "overwrite", overwriteResult, "overwrite the results column")
-	flag.BoolVar(&skipFirstRow, "S", skipFirstRow, "set boolean for skipping first row of sheet (default true)")
-	flag.BoolVar(&skipFirstRow, "Skip", skipFirstRow, "set boolean for skipping first row of spreadsheet (default true)")
-	flag.StringVar(&sheetName, "s", sheetName, "set the sheet name, e.g. \"Sheet1\"")
-	flag.StringVar(&sheetName, "sheet", sheetName, "set the sheet name, e.g. \"Sheet1\"")
-	flag.StringVar(&dataPath, "d", dataPath, "set the datapath for results (default \".item[].link\")")
-	flag.StringVar(&dataPath, "datapath", dataPath, "set the datapath for results (default \".item[].link\")")
+	flag.BoolVar(&skipFirstRow, "s", skipFirstRow, "set boolean for skipping first row of sheet (default true)")
+	flag.BoolVar(&skipFirstRow, "skip", skipFirstRow, "set boolean for skipping first row of spreadsheet (default true)")
 
 	// Set from environment
 	if val := os.Getenv("EPRINTS_SEARCH_URL"); val != "" {
@@ -132,24 +127,26 @@ func main() {
 
 	args := flag.Args()
 	if len(args) < 3 {
-		fmt.Fprintf(os.Stderr, "USAGE: %s XLXS_FILENAME QUERY_COLUMN RESULT_COLUMN\n", appname)
+		fmt.Fprintf(os.Stderr, "USAGE: %s XLXS_FILENAME SHEET_NAME QUERY_COLUMN [RESULT_SHEET_NAME]\n", appname)
 		os.Exit(1)
 	}
-	fname, queryColumn, resultColumn := args[0], args[1], args[2]
-
-	fmt.Printf("Workbook name: %s, queryColumn: %s, resultColumn: %s\n", fname, queryColumn, resultColumn)
-	xlq := &xlquery.XLQuery{
-		EPrintsSearchURL: eprintsSearchURL,
-		ResultDataPath:   dataPath,
-		WorkbookName:     fname,
-		SheetName:        sheetName,
-		QueryColumn:      queryColumn,
-		ResultColumn:     resultColumn,
-		OverwriteResult:  overwriteResult,
-		SkipFirstRow:     skipFirstRow,
-		DataURL:          "",
-		ErrorList:        []string{},
+	resultSheetName = "Result"
+	fname, sheetName, queryColumn := args[0], args[1], args[2]
+	if len(args) >= 4 {
+		resultSheetName = args[3]
 	}
+
+	fmt.Printf("Workbook name: %s, query sheet %s, query column: %s, result sheet: %s\n", fname, sheetName, queryColumn, resultSheetName)
+	xlq := new(xlquery.XLQuery)
+	xlq.Init()
+	xlq.EPrintsSearchURL = eprintsSearchURL
+	xlq.WorkbookName = fname
+	xlq.SheetName = sheetName
+	xlq.QueryColumn = queryColumn
+	xlq.ResultSheetName = resultSheetName
+	xlq.OverwriteResult = true
+	xlq.SkipFirstRow = skipFirstRow
+
 	err := xlquery.CliRunner(xlq, func(msg string) {
 		fmt.Fprintf(os.Stdout, "%s\n", msg)
 	})
