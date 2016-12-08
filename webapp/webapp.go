@@ -1,5 +1,5 @@
 //
-// xlquery/webapp/xlquery.go is a wrapper for xlquery.go targetting GopherJS and embedding xlquery functionality as a webapp in a web browser.
+// excelquery/webapp/excelquery.go is a wrapper for excelquery.go targetting GopherJS and embedding excelquery functionality as a webapp in a web browser.
 //
 // @author R. S. Doiel, <rsdoiel@caltech.edu>
 //
@@ -20,20 +20,20 @@ package main
 
 import (
 	// Caltech Library packages
-	"github.com/caltechlibrary/xlquery"
+	"github.com/caltechlibrary/excelquery"
 
 	// 3rd Party Library
 	"github.com/gopherjs/gopherjs/js"
 )
 
 func New() *js.Object {
-	xlq := new(xlquery.XLQuery)
+	xlq := new(excelquery.XLQuery)
 	xlq.Init()
 	return js.MakeWrapper(xlq)
 }
 
 func main() {
-	js.Global.Set("xlquery", map[string]interface{}{
+	js.Global.Set("excelquery", map[string]interface{}{
 		"New": New,
 	})
 }

@@ -1,5 +1,5 @@
 //
-// xlquery - a package for quering Caltech library API (and others) and integrating results into an Excel Workbook.
+// excelquery - a package for quering Caltech library API (and others) and integrating results into an Excel Workbook.
 //
 // @author R. S. Doiel, <rsdoiel@caltech.edu>
 //
@@ -24,8 +24,8 @@ import (
 	"os"
 	"path"
 
+	"github.com/caltechlibrary/excelquery"
 	// Caltech Library packages
-	"github.com/caltechlibrary/xlquery"
 )
 
 var (
@@ -87,7 +87,7 @@ func usage(fp *os.File, appName string) {
 	
  Version: %s
 
-`, xlquery.Version)
+`, excelquery.Version)
 }
 
 func init() {
@@ -117,7 +117,7 @@ func main() {
 		os.Exit(0)
 	}
 	if showVersion == true {
-		fmt.Printf(" Version %s\n", xlquery.Version)
+		fmt.Printf(" Version %s\n", excelquery.Version)
 		os.Exit(0)
 	}
 	if showLicense == true {
@@ -137,7 +137,7 @@ func main() {
 	}
 
 	fmt.Printf("Workbook name: %s, query sheet %s, query column: %s, result sheet: %s\n", fname, sheetName, queryColumn, resultSheetName)
-	xlq := new(xlquery.XLQuery)
+	xlq := new(excelquery.XLQuery)
 	xlq.Init()
 	xlq.EPrintsSearchURL = eprintsSearchURL
 	xlq.WorkbookName = fname
@@ -147,7 +147,7 @@ func main() {
 	xlq.OverwriteResult = true
 	xlq.SkipFirstRow = skipFirstRow
 
-	err := xlquery.CliRunner(xlq, func(msg string) {
+	err := excelquery.CliRunner(xlq, func(msg string) {
 		fmt.Fprintf(os.Stdout, "%s\n", msg)
 	})
 	if err != nil {

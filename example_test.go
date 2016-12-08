@@ -1,5 +1,5 @@
 //
-// exampl_test.go provides example code for demoing xlquery
+// exampl_test.go provides example code for demoing excelquery
 //
 // @author R. S. Doiel, <rsdoiel@caltech.edu>
 //
@@ -16,20 +16,20 @@
 //
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-package xlquery_test
+package excelquery
 
 import (
 	"fmt"
 	"path"
 
 	// Caltech Library package
-	"github.com/caltechlibrary/xlquery"
+	"github.com/caltechlibrary/excelquery"
 )
 
 // ExampleXLQuery create a XLQuery object for running latter
 func ExampleXLQuery() {
 	// Create a new empty XLQuery
-	xlq := new(xlquery.XLQuery)
+	xlq := new(excelquery.XLQuery)
 	// Set some sane defaults
 	xlq.Init()
 	// Now you can overwrite them as necessary...
@@ -39,14 +39,14 @@ func ExampleXLQuery() {
 	xlq.ResultSheetName = "Result1"
 	xlq.OverwriteResult = true
 	xlq.SkipFirstRow = true
-	// At this point you can run xlquery with the CliRunner() or WebRunner() depending
+	// At this point you can run excelquery with the CliRunner() or WebRunner() depending
 	// on your environment.
 }
 
 // ExampleCliRunner uses an XLQuery structure for sain settings and the CliRunner() function to process
 func ExampleCliRunner() {
 	// Creates a new
-	xlq := new(xlquery.XLQuery)
+	xlq := new(excelquery.XLQuery)
 	// Set some sane defaults
 	xlq.Init()
 	xlq.WorkbookName = path.Join("testdata", "test-1.xlsx")
@@ -55,7 +55,7 @@ func ExampleCliRunner() {
 	xlq.ResultSheetName = "Result1"
 	xlq.OverwriteResult = true
 	xlq.SkipFirstRow = true
-	err := xlquery.CliRunner(xlq, func(msg string) {
+	err := excelquery.CliRunner(xlq, func(msg string) {
 		fmt.Println(msg)
 	})
 	if err != nil {
