@@ -36,7 +36,6 @@ var (
 	eprintsSearchURL = "http://authors.library.caltech.edu/cgi/search/advanced/"
 	sheetName        = "Sheet1"
 	resultSheetName  = "Result"
-	overwriteResult  = false
 	skipFirstRow     = true
 )
 
@@ -63,8 +62,8 @@ func usage(fp *os.File, appName string) {
 	fmt.Fprintf(fp, `
  USAGE: %s [OPTION] WORKBOOK_NAME QUERY_SHEET_NAME QUERY_COLUMN [RESULT_SHEET_NAME]
 
- Populate a workbook (e.g. ".xlsx" file) by using a query column's value as a query string
- updating the result column's value (by default it does not overwrite existing data).
+ Populate a workbook (e.g. ".xlsx" file) sheet by using a query column's value as a query string
+ updating the result sheet's content overwriting existing data if result sheet name exists.
 
  + The default sheet name to use in a workbook is "Sheet1"
  + Column names are in letter format (e.g. "A" is column 1, "B" column 2, etc.)
@@ -101,8 +100,6 @@ func init() {
 	flag.BoolVar(&showLicense, "license", false, "show license information")
 
 	// App specific flags
-	flag.BoolVar(&overwriteResult, "o", overwriteResult, "overwrite the results sheet")
-	flag.BoolVar(&overwriteResult, "overwrite", overwriteResult, "overwrite the results sheet")
 	flag.BoolVar(&skipFirstRow, "s", skipFirstRow, "set boolean for skipping first row of sheet (default true)")
 	flag.BoolVar(&skipFirstRow, "skip", skipFirstRow, "set boolean for skipping first row of spreadsheet (default true)")
 
@@ -147,7 +144,7 @@ func main() {
 	xlq.SheetName = sheetName
 	xlq.QueryColumn = queryColumn
 	xlq.ResultSheetName = resultSheetName
-	xlq.OverwriteResult = overwriteResult
+	xlq.OverwriteResult = true
 	xlq.SkipFirstRow = skipFirstRow
 
 	err := xlquery.CliRunner(xlq, func(msg string) {

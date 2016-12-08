@@ -37,9 +37,9 @@ setting the environment variable <em>EPRINTS_SEARCH_URL</em>.</p>
 
 <p>The command line program <em>xlquery</em> takes the name of a xlsx file along with a sheet name (or number) and the column name
 for the query string. A sheet name can optionally be supplied for results.  By default it searches on &ldquo;Sheet1&rdquo; and by
-default a new sheet is created called &ldquo;Result1&rdquo;. This can be changed with the &ldquo;-s&rdquo; and &ldquo;-r&rdquo; command line options.</p>
+default a new sheet is created called &ldquo;Result&rdquo;. This can be changed with the &ldquo;-s&rdquo; and &ldquo;-r&rdquo; command line options.</p>
 
-<p>The simple form where column <em>A</em> in *Sheet 1&rdquo; holds the query string and results will be put in a new sheet called &ldquo;Result1&rdquo;</p>
+<p>The simple form where column <em>A</em> in *Sheet 1&rdquo; holds the query string and results will be put in a new sheet called &ldquo;Result&rdquo;</p>
 
 <pre><code class="language-shell">    xlquery titlelist.xlsx &quot;Sheet 1&quot; A 
 </code></pre>
@@ -56,23 +56,22 @@ stderr with catastrophic errors exiting with a value 1. If the program is succes
 <h2>OPTIONS</h2>
 
 <ul>
-<li>-S, -Skip   set boolean for skipping first row of spreadsheet (default true)</li>
 <li>-h, -help   show help information</li>
 <li>-l, -license    show license information</li>
-<li>-o, -overwrite  overwrite the results sheet</li>
-<li>-r, -result-sheet   set the result sheet name, e.g. &ldquo;Result2&rdquo;</li>
-<li>-s, -sheet  set the sheet name, e.g. &ldquo;Sheet1&rdquo;</li>
-<li>-v, -version    show version information</li>
+
+<li><p>-v, -version    show version information</p></li>
+
+<li><p>-s, -skip   set boolean for skipping first row of spreadsheet (default true)</p></li>
 </ul>
 
 <h2>Example</h2>
 
-<pre><code class="language-shell">    xlquery -sheet &quot;Title List&quot; -overwrite ./testdata/demo2.xlsx A
+<pre><code class="language-shell">    xlquery ./testdata/demo2.xlsx &quot;Title List&quot; A
 </code></pre>
 
-<p>This opens demo2.xlsx and uses the sheet named &ldquo;Title List&rdquo;. It populates fresh results in in a new sheet called &ldquo;Results&rdquo; based on the
-query string in column <em>A</em> of &ldquo;Title List&rdquo;. The results are taken from the data path of &ldquo;.item[].link&rdquo; from the RSS2
-response in the search request.</p>
+<p>This opens demo2.xlsx and uses the sheet named &ldquo;Title List&rdquo;. It populates fresh results in in a new sheet called &ldquo;Result&rdquo; based on the
+query string in column <em>A</em> of &ldquo;Title List&rdquo;. The results are taken from the item field of the RSS2
+response to the search request.</p>
 
 </section>
 

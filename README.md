@@ -36,18 +36,17 @@ stderr with catastrophic errors exiting with a value 1. If the program is succes
 + -l, -license    show license information
 + -v, -version    show version information
 
-+ -o, -overwrite  overwrite the results sheet
 + -s, -skip   set boolean for skipping first row of spreadsheet (default true)
 
 
 ## Example
 
 ```shell
-    xlquery -sheet "Title List" -overwrite ./testdata/demo2.xlsx A
+    xlquery ./testdata/demo2.xlsx "Title List" A
 ```
 
-This opens demo2.xlsx and uses the sheet named "Title List". It populates fresh results in in a new sheet called "Results" based on the 
-query string in column *A* of "Title List". The results are taken from the data path of ".item[].link" from the RSS2 
-response in the search request.
+This opens demo2.xlsx and uses the sheet named "Title List". It populates fresh results in in a new sheet called "Result" based on the 
+query string in column *A* of "Title List". The results are taken from the item field of the RSS2 
+response to the search request.
 
 
