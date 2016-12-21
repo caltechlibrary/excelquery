@@ -35,7 +35,7 @@ import (
 
 const (
 	// Version of this package
-	Version = `v0.0.2`
+	Version = "v0.0.2"
 )
 
 var (
