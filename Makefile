@@ -19,10 +19,9 @@ fmt:
 	gofmt -w $(PROJECT)_test.go
 	gofmt -w cmds/$(PROJECT)/$(PROJECT).go
 	gofmt -w webapp/webapp.go
-	goimports -w $(PROJECT).go
-	goimports -w $(PROJECT)_test.go
-	goimports -w cmds/$(PROJECT)/$(PROJECT).go
-	goimports -w webapp/webapp.go
+
+status:
+	git status
 
 save:
 	git commit -am "quick save"
@@ -39,8 +38,8 @@ clean:
 install:
 	env CGO_ENABLED=0 GOBIN=$(HOME)/bin go install cmds/$(PROJECT)/$(PROJECT).go
 
-release:
-	./mk-release.bash
+webapp:
+	./mk-webapp.bash
 
 website:
 	./mk-webapp.bash
@@ -50,3 +49,26 @@ publish:
 	./mk-webapp.bash
 	./mk-website.bash
 	./publish.bash
+
+release: dist/linux-amd64 dist/windows-amd64 dist/macosx-amd64 dist/raspbian-arm7
+	mkdir -p dist
+	cp -v README.md dist/
+	cp -v LICENSE dist/
+	cp -v INSTALL.md dist/
+	cp -v excelquery.md dist/
+	zip -r $(PROJECT)-$(VERSION)-release.zip dist/*
+
+dist/linux-amd64:
+	env GOOS=linux GOARCH=amd64 go build -o dist/linux-amd64/excelquery cmds/excelquery/excelquery.go
+
+dist/windows-amd64:
+	env GOOS=windows GOARCH=amd64 go build -o dist/windows-amd64/excelquery.exe cmds/excelquery/excelquery.go
+
+dist/macosx-amd64:
+	env GOOS=darwin GOARCH=amd64 go build -o dist/macosx-amd64/excelquery cmds/excelquery/excelquery.go
+
+dist/raspbian-arm7:
+	env GOOS=linux GOARCH=arm GOARM=7 go build -o dist/raspberrypi-arm7/excelquery cmds/excelquery/excelquery.go
+
+
+

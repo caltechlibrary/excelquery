@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Caltech Library's Digital Library Development Sandbox</title>
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" href="/css/site.css">
+</head>
+<body>
+<header>
+<a href="http://library.caltech.edu"><img src="assets/liblogo.gif" alt="Caltech Library logo"></a>
+</header>
+<nav>
+<ul>
+<li><a href="/">Home</a></li>
+<li><a href="./">README</a>
+<!-- + [Web Version](webapp/) --></li>
+<li><a href="install.html">INSTALL</a></li>
+<li><a href="license.html">LICENSE</a></li>
+<li><a href="https://github.com/caltechlibrary/exelquery">Github</a></li>
+</ul>
+
+</nav>
+
+<section>
+<h1>USAGE</h1>
+
+<pre><code>excelquery XLSX_FILENAME SHEET_NO ROW_NO COLUMN_NO
+</code></pre>
+
+<h2>SYNOPSIS</h2>
+
+<p>excelquery query our repositories for matching information.</p>
+
+<h2>OPTIONS</h2>
+
+<pre><code>	-h	show help information
+	-help	show help information
+	-l	show license information
+	-license	show license information
+	-s	set boolean for skipping first row of sheet (default true)
+	-skip	set boolean for skipping first row of spreadsheet (default true)
+	-v	show version information
+	-version	show version information
+</code></pre>
+
+<h2>EXAMPLE</h2>
+
+<pre><code>	excelquery inventory.xlsx 0 20 20
+</code></pre>
+
+<p>Query sheet number 0 (the first sheet) based on row 20,
+column 20.</p>
+
+</section>
+
+<footer>
+<span><h1><A href="http://caltech.edu">Caltech</a></h1></span>
+<span>&copy; 2015 - 2016 <a href="http://library.caltech.edu/CLS_Copyright.htm">Caltech library</a></span>
+<address>1200 E California Blvd, Mail Code 1-32, Pasadena, CA 91125-3200</address> 
+<span>Phone: <a href="tel:+1-626-395-3405">(626)395-3405</a></span>
+<span><a href="mailto:library@caltech.edu">Email Us</a></span>
+<a class="cl-hide" href="sitemap.xml">Site Map</a>
+</footer>
+</body>
+</html>
