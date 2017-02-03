@@ -32,11 +32,12 @@ stderr with catastrophic errors exiting with a value 1. If the program is succes
 
 ## OPTIONS
 
-+ -h, -help   show help information
-+ -l, -license    show license information
-+ -v, -version    show version information
-
-+ -s, -skip   set boolean for skipping first row of spreadsheet (default true)
+```
+    -h, -help     show help information
+    -l, -license  show license information
+    -v, -version  show version information
+    -s, -skip     set boolean for skipping first row of spreadsheet (default true)
+```
 
 
 ## Example
