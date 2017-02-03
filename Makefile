@@ -1,31 +1,31 @@
 #
 # Simple Makefile
 #
-PROG = excelquery
+PROJECT = excelquery
 
-build: fmt
-	go build
-	go build -o bin/$(PROG) cmds/$(PROG)/$(PROG).go
+VERSION = $(shell grep -m 1 'Version =' $(PROJECT).go | cut -d\"  -f 2)
+
+BRANCH = $(shell git branch | grep '* ' | cut -d\  -f 2)
+
+build:
+	env CGO_ENABLED=0 go build -o bin/$(PROJECT) cmds/$(PROJECT)/$(PROJECT).go
 	cd webapp && gopherjs build
 
-test: fmt
+test:
 	go test
 
 fmt: 
-	gofmt -w $(PROG).go
-	gofmt -w $(PROG)_test.go
-	gofmt -w cmds/$(PROG)/$(PROG).go
+	gofmt -w $(PROJECT).go
+	gofmt -w $(PROJECT)_test.go
+	gofmt -w cmds/$(PROJECT)/$(PROJECT).go
 	gofmt -w webapp/webapp.go
-	goimports -w $(PROG).go
-	goimports -w $(PROG)_test.go
-	goimports -w cmds/$(PROG)/$(PROG).go
-	goimports -w webapp/webapp.go
 
-save: fmt
-	./mk-webapp.bash
-	./mk-website.bash
+status:
+	git status
+
+save:
 	git commit -am "quick save"
-	git push origin master
+	git push origin $(BRANCH)
 
 clean:
 	if [ -d bin ]; then /bin/rm -fR bin; fi
@@ -33,13 +33,13 @@ clean:
 	if [ -f webapp/webapp.js ]; then /bin/rm -f webapp/webapp.js; fi
 	if [ -f webapp/webapp.js.map ]; then /bin/rm -f webapp/webapp.js.map; fi
 	if [ -f webapp/index.html ]; then /bin/rm -f webapp/index.html; fi
-	if [ -f $(PROG)-binary-release.zip ]; then /bin/rm -f $(PROG)-binary-release.zip; fi
+	if [ -f "$(PROJECT)-$(VERSION)-release.zip" ]; then /bin/rm -f "$(PROJECT)-$(VERSION)-release.zip"; fi
 
 install:
-	env GOBIN=$(HOME)/bin go install cmds/$(PROG)/$(PROG).go
+	env CGO_ENABLED=0 GOBIN=$(HOME)/bin go install cmds/$(PROJECT)/$(PROJECT).go
 
-release:
-	./mk-release.bash
+webapp:
+	./mk-webapp.bash
 
 website:
 	./mk-webapp.bash
@@ -49,3 +49,26 @@ publish:
 	./mk-webapp.bash
 	./mk-website.bash
 	./publish.bash
+
+release: dist/linux-amd64 dist/windows-amd64 dist/macosx-amd64 dist/raspbian-arm7
+	mkdir -p dist
+	cp -v README.md dist/
+	cp -v LICENSE dist/
+	cp -v INSTALL.md dist/
+	cp -v excelquery.md dist/
+	zip -r $(PROJECT)-$(VERSION)-release.zip dist/*
+
+dist/linux-amd64:
+	env GOOS=linux GOARCH=amd64 go build -o dist/linux-amd64/excelquery cmds/excelquery/excelquery.go
+
+dist/windows-amd64:
+	env GOOS=windows GOARCH=amd64 go build -o dist/windows-amd64/excelquery.exe cmds/excelquery/excelquery.go
+
+dist/macosx-amd64:
+	env GOOS=darwin GOARCH=amd64 go build -o dist/macosx-amd64/excelquery cmds/excelquery/excelquery.go
+
+dist/raspbian-arm7:
+	env GOOS=linux GOARCH=arm GOARM=7 go build -o dist/raspberrypi-arm7/excelquery cmds/excelquery/excelquery.go
+
+
+

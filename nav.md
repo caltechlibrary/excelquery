@@ -1,8 +1,8 @@
 
 + [Home](/)
-+ [README](index.html)
++ [README](./)
 <!-- + [Web Version](webapp/) -->
-+ [Install](install.html)
++ [INSTALL](install.html)
 + [LICENSE](license.html)
-+ [Github](https://github.com/caltechlibrary/xlquery)
++ [Github](https://github.com/caltechlibrary/exelquery)
 

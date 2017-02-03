@@ -29,6 +29,7 @@ function MakePage () {
         "nav=$nav" \
         "content=$content" \
         page.tmpl > $html
+    git add $html
 }
 
 echo "Checking necessary software is installed"
@@ -39,3 +40,9 @@ echo "Generating install.html"
 MakePage nav.md INSTALL.md install.html
 echo "Generating license.html"
 MakePage nav.md "markdown:$(cat LICENSE)" license.html
+
+# Process commands in project
+for FNAME in excelquery; do
+    echo "Generating $FNAME.html"
+    MakePage nav.md $FNAME.md $FNAME.html
+done
