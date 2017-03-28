@@ -24,7 +24,7 @@ status:
 	git status
 
 save:
-	git commit -am "quick save"
+	if [ "$(msg)" != "" ]; then git commit -am "$(msg)"; else git commit -am "quick save"; fi
 	git push origin $(BRANCH)
 
 clean:
